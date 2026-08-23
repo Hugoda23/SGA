@@ -25,14 +25,21 @@ class HorarioDetalleController extends Controller
         ]);
 
         $asignacion = Asignacion::findOrFail($validated['id_asignacion']);
+        $horaInicio = $validated['hora_inicio'] ?? null;
+        $horaFin = $validated['hora_fin'] ?? null;
+
+        $errorRango = $this->validarRangoHoras($horaInicio, $horaFin);
+        if ($errorRango) {
+            return response()->json(['message' => 'No se pudo guardar el horario.', 'errores' => [$errorRango]], 422);
+        }
 
         $errores = $horarioService->verificarChoqueAula(
             $validated['id_asignacion'],
             $asignacion->id_aula,
             $asignacion->id_periodo,
             $validated['dia_semana'] ?? null,
-            $validated['hora_inicio'] ?? null,
-            $validated['hora_fin'] ?? null
+            $horaInicio,
+            $horaFin
         );
 
         if (!empty($errores)) {
@@ -58,14 +65,21 @@ class HorarioDetalleController extends Controller
         ]);
 
         $asignacion = $horarioDetalle->asignacion;
+        $horaInicio = $validated['hora_inicio'] ?? $horarioDetalle->hora_inicio;
+        $horaFin = $validated['hora_fin'] ?? $horarioDetalle->hora_fin;
+
+        $errorRango = $this->validarRangoHoras($horaInicio, $horaFin);
+        if ($errorRango) {
+            return response()->json(['message' => 'No se pudo actualizar el horario.', 'errores' => [$errorRango]], 422);
+        }
 
         $errores = $horarioService->verificarChoqueAula(
             $horarioDetalle->id_asignacion,
             $asignacion->id_aula,
             $asignacion->id_periodo,
             $validated['dia_semana'] ?? $horarioDetalle->dia_semana,
-            $validated['hora_inicio'] ?? $horarioDetalle->hora_inicio,
-            $validated['hora_fin'] ?? $horarioDetalle->hora_fin,
+            $horaInicio,
+            $horaFin,
             $horarioDetalle->id_horario
         );
 
@@ -83,5 +97,14 @@ class HorarioDetalleController extends Controller
         $horarioDetalle->delete();
 
         return response()->json(null, 204);
+    }
+
+    private function validarRangoHoras(?string $horaInicio, ?string $horaFin): ?string
+    {
+        if ($horaInicio !== null && $horaFin !== null && $horaFin <= $horaInicio) {
+            return 'La hora de fin debe ser posterior a la hora de inicio.';
+        }
+
+        return null;
     }
 }
