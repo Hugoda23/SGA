@@ -81,9 +81,17 @@ export default function AsignacionForm() {
     e.preventDefault()
     const payload = Object.fromEntries(Object.entries(form).map(([k, v]) => [k, v === '' ? null : v]))
     try {
-      if (isEdit) await api.put(`/v1/asignaciones/${id}`, payload)
-      else await api.post('/v1/asignaciones', payload)
-      navigate('/asignaciones')
+      if (isEdit) {
+        await api.put(`/v1/asignaciones/${id}`, payload)
+        navigate('/asignaciones')
+      } else {
+        const res = await api.post('/v1/asignaciones', payload)
+        // En vez de volver al listado, pasamos al modo edición de la
+        // asignación recién creada — ahí es donde vive la sección de
+        // horarios, para no obligar a guardar y volver a entrar.
+        setAlertMessage('Asignación creada. Ahora agrega sus horarios de clase abajo.')
+        navigate(`/asignaciones/${res.data.id_asignacion}`, { replace: true })
+      }
     } catch (err) {
       if (err.response?.data?.errors) {
         const msgs = Object.values(err.response.data.errors).flat().join('\n')
@@ -134,7 +142,7 @@ export default function AsignacionForm() {
 
         <div className="flex gap-3 pt-2">
           <button type="submit" className={btn.primary}>{isEdit ? 'Actualizar' : 'Crear'}</button>
-          <button type="button" onClick={() => navigate('/asignaciones')} className={btn.neutral}>Cancelar</button>
+          <button type="button" onClick={() => navigate('/asignaciones')} className={btn.neutral}>{isEdit ? 'Volver a la lista' : 'Cancelar'}</button>
         </div>
       </form>
 
