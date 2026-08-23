@@ -17,6 +17,7 @@ class Tarea extends Model
         'titulo',
         'descripcion',
         'puntos',
+        'id_zona',
         'fecha_entrega',
         'permitir_link',
         'id_asignacion',
@@ -37,6 +38,11 @@ class Tarea extends Model
     public function unidad()
     {
         return $this->belongsTo(Unidad::class, 'id_unidad', 'id_unidad');
+    }
+
+    public function zona()
+    {
+        return $this->belongsTo(ZonaEvaluacion::class, 'id_zona', 'id_zona');
     }
 
     public function entregas()

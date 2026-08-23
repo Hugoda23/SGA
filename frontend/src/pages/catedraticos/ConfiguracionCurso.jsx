@@ -56,6 +56,7 @@ export default function ConfiguracionCurso() {
   const [titulo, setTitulo] = useState('')
   const [descripcion, setDescripcion] = useState('')
   const [puntos, setPuntos] = useState('')
+  const [idZonaTarea, setIdZonaTarea] = useState('')
   const [fechaEntrega, setFechaEntrega] = useState('')
   const [horaEntrega, setHoraEntrega] = useState('')
   const [idUnidadTarea, setIdUnidadTarea] = useState('')
@@ -193,12 +194,22 @@ export default function ConfiguracionCurso() {
 
   const handlePublicarTarea = async () => {
     if (!titulo.trim()) { setAlertMessage('El título de la tarea es obligatorio'); return }
+    if (idZonaTarea) {
+      const zonaSeleccionada = zonasConDisponible.find((z) => z.id_zona === parseInt(idZonaTarea))
+      const puntosNum = puntos !== '' ? parseFloat(puntos) : null
+      if (puntosNum === null) { setAlertMessage('Indica los puntos de la tarea para asignarla a una zona'); return }
+      if (zonaSeleccionada && puntosNum > zonaSeleccionada.disponible) {
+        setAlertMessage(`La zona "${zonaSeleccionada.nombre}" solo tiene ${zonaSeleccionada.disponible} pts disponibles.`)
+        return
+      }
+    }
     setPublicando(true)
     try {
       const payload = {
         titulo: titulo.trim(),
         descripcion: descripcion.trim() || null,
         puntos: puntos !== '' ? parseFloat(puntos) : null,
+        id_zona: idZonaTarea ? parseInt(idZonaTarea) : null,
         id_asignacion: parseInt(id_asignacion),
         id_unidad: idUnidadTarea ? parseInt(idUnidadTarea) : null,
         permitir_link: permitirLink,
@@ -210,10 +221,10 @@ export default function ConfiguracionCurso() {
       }
       await api.post('/v1/tareas', payload)
       setAlertMessage('Tarea publicada correctamente. Los alumnos recibirán una notificación.')
-      setTitulo(''); setDescripcion(''); setPuntos(''); setFechaEntrega(''); setHoraEntrega(''); setIdUnidadTarea(''); setPermitirLink(false)
+      setTitulo(''); setDescripcion(''); setPuntos(''); setIdZonaTarea(''); setFechaEntrega(''); setHoraEntrega(''); setIdUnidadTarea(''); setPermitirLink(false)
       cargarTodo()
     } catch (err) {
-      setAlertMessage(err.response?.data?.message || 'Error al publicar tarea')
+      setAlertMessage(err.response?.data?.message || err.response?.data?.errors?.puntos?.[0] || 'Error al publicar tarea')
     } finally {
       setPublicando(false)
     }
@@ -267,6 +278,17 @@ export default function ConfiguracionCurso() {
   if (!data) return null
 
   const { asignacion, unidades, horarios, alumnos, materiales, anuncios, evaluaciones, zonas, total_puntos_zonas } = data
+
+  // Puntos disponibles por zona: puntos de la zona menos lo que ya consumen
+  // sus actividades (evaluaciones) y las demás tareas ya asignadas a ella.
+  const zonasConDisponible = (zonas || []).map((z) => {
+    const consumidoEvaluaciones = (z.evaluaciones || []).reduce((acc, ev) => acc + (parseFloat(ev.porcentaje) || 0), 0)
+    const consumidoTareas = tareas
+      .filter((t) => t.id_zona === z.id_zona)
+      .reduce((acc, t) => acc + (parseFloat(t.puntos) || 0), 0)
+    const disponible = (parseFloat(z.puntos) || 0) - consumidoEvaluaciones - consumidoTareas
+    return { ...z, disponible }
+  })
 
   return (
     <div className="mx-auto max-w-7xl pb-12">
@@ -448,6 +470,20 @@ export default function ConfiguracionCurso() {
                 <p className="mt-1 text-xs text-neutral-400 dark:text-neutral-500">Si no indicas puntos, la calificación de las entregas se registrará sobre 100.</p>
               </div>
               <div>
+                <label className={input.label}>Zona de evaluación (opcional)</label>
+                <select value={idZonaTarea} onChange={(e) => setIdZonaTarea(e.target.value)} className={input.base}>
+                  <option value="">Sin vincular a una zona</option>
+                  {zonasConDisponible.map((z) => (
+                    <option key={z.id_zona} value={z.id_zona} disabled={z.disponible <= 0}>
+                      {z.nombre} — {z.disponible > 0 ? `${z.disponible} pts disponibles` : 'sin puntos disponibles'}
+                    </option>
+                  ))}
+                </select>
+                <p className="mt-1 text-xs text-neutral-400 dark:text-neutral-500">
+                  Si vinculas la tarea a una zona, sus puntos se descuentan del presupuesto de esa zona — no se puede exceder lo disponible.
+                </p>
+              </div>
+              <div>
                 <label className={input.label}>Fecha de Entrega</label>
                 <input type="date" value={fechaEntrega} onChange={(e) => setFechaEntrega(e.target.value)} className={input.base} />
               </div>
@@ -486,6 +522,7 @@ export default function ConfiguracionCurso() {
               ) : (
                 tareas.map((t) => {
                   const vencida = t.fecha_entrega && new Date(t.fecha_entrega) < new Date()
+                  const zonaTarea = t.id_zona ? zonas.find((z) => z.id_zona === t.id_zona) : null
                   return (
                     <div key={t.id_tarea} className={`rounded-xl border p-3 ${vencida ? 'border-danger-100 bg-danger-50' : 'border-neutral-100 bg-neutral-50 dark:border-neutral-700 dark:bg-neutral-700/50'}`}>
                       <div className="flex items-center justify-between gap-3">
@@ -501,6 +538,9 @@ export default function ConfiguracionCurso() {
                             {vencida && <span className="ml-2 font-bold text-danger">(Vencida)</span>}
                           </p>
                           <p className="text-xs text-neutral-400 dark:text-neutral-500">{t.total_entregas}/{t.total_alumnos} entregas</p>
+                          {zonaTarea && (
+                            <p className="mt-1 text-xs font-semibold text-secondary">Zona: {zonaTarea.nombre}</p>
+                          )}
                           {t.unidad && (
                             <p className="mt-1 text-xs font-semibold text-primary">
                               {t.unidad.numero_semana ? `Semana ${t.unidad.numero_semana} · ` : ''}{t.unidad.titulo}

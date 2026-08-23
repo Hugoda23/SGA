@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api\V1;
 use App\Http\Controllers\Controller;
 use App\Models\Tarea;
 use App\Models\Inscripcion;
+use App\Models\ZonaEvaluacion;
 use App\Services\NotificacionService;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
@@ -35,11 +36,19 @@ class TareaController extends Controller
             'titulo' => 'required|string|max:200',
             'descripcion' => 'nullable|string',
             'puntos' => 'nullable|numeric|min:0|max:1000',
+            'id_zona' => 'nullable|exists:zona_evaluacion,id_zona',
             'fecha_entrega' => 'nullable|string',
             'permitir_link' => 'nullable|boolean',
             'id_asignacion' => 'required|exists:asignacion,id_asignacion',
             'id_unidad' => 'nullable|exists:unidad,id_unidad',
         ]);
+
+        if (!empty($validated['id_zona'])) {
+            $error = $this->validarCapacidadZona($validated['id_zona'], $validated['id_asignacion'], $validated['puntos'] ?? null);
+            if ($error) {
+                return $error;
+            }
+        }
 
         if (!empty($validated['fecha_entrega'])) {
             $validated['fecha_entrega'] = Carbon::parse($validated['fecha_entrega'])->format('Y-m-d H:i:s');
@@ -81,11 +90,22 @@ class TareaController extends Controller
             'titulo' => 'sometimes|string|max:200',
             'descripcion' => 'nullable|string',
             'puntos' => 'nullable|numeric|min:0|max:1000',
+            'id_zona' => 'nullable|exists:zona_evaluacion,id_zona',
             'fecha_entrega' => 'nullable|string',
             'permitir_link' => 'nullable|boolean',
             'id_asignacion' => 'sometimes|exists:asignacion,id_asignacion',
             'id_unidad' => 'nullable|exists:unidad,id_unidad',
         ]);
+
+        $idZona = array_key_exists('id_zona', $validated) ? $validated['id_zona'] : $tarea->id_zona;
+        if (!empty($idZona)) {
+            $puntos = array_key_exists('puntos', $validated) ? $validated['puntos'] : $tarea->puntos;
+            $idAsignacion = $validated['id_asignacion'] ?? $tarea->id_asignacion;
+            $error = $this->validarCapacidadZona($idZona, $idAsignacion, $puntos, $tarea->id_tarea);
+            if ($error) {
+                return $error;
+            }
+        }
 
         if (!empty($validated['fecha_entrega'])) {
             $validated['fecha_entrega'] = Carbon::parse($validated['fecha_entrega'])->format('Y-m-d H:i:s');
@@ -98,6 +118,40 @@ class TareaController extends Controller
         $tarea->update($validated);
 
         return response()->json($tarea);
+    }
+
+    /**
+     * Verifica que la tarea quepa en el presupuesto de puntos de su zona de
+     * evaluación (zona.puntos - lo que ya consumen sus evaluaciones y otras
+     * tareas). Devuelve una respuesta 422 si no cabe, o null si es válida.
+     */
+    private function validarCapacidadZona($idZona, $idAsignacion, $puntosTarea, $idTareaExcluir = null)
+    {
+        $zona = ZonaEvaluacion::with('evaluaciones')->find($idZona);
+
+        if (!$zona || $zona->id_asignacion != $idAsignacion) {
+            return response()->json(['errors' => ['id_zona' => ['La zona no pertenece a esta asignación.']]], 422);
+        }
+
+        if ($puntosTarea === null) {
+            return response()->json(['errors' => ['puntos' => ['Debes indicar los puntos de la tarea para asignarla a una zona.']]], 422);
+        }
+
+        $consumidoEvaluaciones = $zona->evaluaciones->sum('porcentaje');
+        $consumidoTareas = Tarea::where('id_zona', $idZona)
+            ->when($idTareaExcluir, fn ($q) => $q->where('id_tarea', '!=', $idTareaExcluir))
+            ->sum('puntos');
+
+        $disponible = (float) $zona->puntos - (float) $consumidoEvaluaciones - (float) $consumidoTareas;
+
+        if ((float) $puntosTarea > $disponible) {
+            return response()->json([
+                'message' => "La zona \"{$zona->nombre}\" ya no tiene puntos disponibles: quedan {$disponible} de {$zona->puntos} pts.",
+                'errors' => ['puntos' => ["La zona \"{$zona->nombre}\" solo tiene {$disponible} pts disponibles."]],
+            ], 422);
+        }
+
+        return null;
     }
 
     public function destroy(Tarea $tarea)
@@ -118,6 +172,7 @@ class TareaController extends Controller
                     'titulo' => $t->titulo,
                     'descripcion' => $t->descripcion,
                     'puntos' => $t->puntos,
+                    'id_zona' => $t->id_zona,
                     'fecha_entrega' => $t->fecha_entrega,
                     'permitir_link' => $t->permitir_link,
                     'id_unidad' => $t->id_unidad,
