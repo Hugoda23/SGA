@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
 use App\Models\Asignacion;
+use App\Services\HorarioService;
 use App\Traits\PreventsDeleteOnRelatedRecords;
 use Illuminate\Http\Request;
 
@@ -36,8 +37,8 @@ class AsignacionController extends Controller
             'id_curso' => 'required|exists:curso,id_curso',
             'id_aula' => 'required|exists:aula,id_aula',
             'id_periodo' => 'required|exists:periodo_academico,id_periodo',
-            'grado' => 'nullable|string|max:50',
-            'seccion' => 'nullable|string|max:20',
+            'id_grado' => 'nullable|exists:grado,id_grado',
+            'id_seccion' => 'nullable|exists:seccion,id_seccion',
         ]);
 
         $asignacion = Asignacion::create($validated);
@@ -50,16 +51,44 @@ class AsignacionController extends Controller
         return $asignacion->load('catedratico', 'curso', 'aula', 'periodo', 'horarios', 'tareas', 'inscripciones', 'evaluaciones');
     }
 
-    public function update(Request $request, Asignacion $asignacion)
+    public function update(Request $request, Asignacion $asignacion, HorarioService $horarioService)
     {
         $validated = $request->validate([
             'id_catedratico' => 'sometimes|exists:catedratico,id_catedratico',
             'id_curso' => 'sometimes|exists:curso,id_curso',
             'id_aula' => 'sometimes|exists:aula,id_aula',
             'id_periodo' => 'sometimes|exists:periodo_academico,id_periodo',
-            'grado' => 'nullable|string|max:50',
-            'seccion' => 'nullable|string|max:20',
+            'id_grado' => 'nullable|exists:grado,id_grado',
+            'id_seccion' => 'nullable|exists:seccion,id_seccion',
         ]);
+
+        $nuevaAula = $validated['id_aula'] ?? $asignacion->id_aula;
+        $nuevoPeriodo = $validated['id_periodo'] ?? $asignacion->id_periodo;
+        $cambiaAulaOPeriodo = $nuevaAula != $asignacion->id_aula || $nuevoPeriodo != $asignacion->id_periodo;
+
+        if ($cambiaAulaOPeriodo) {
+            // El aula/periodo cambian: los horarios ya cargados para esta
+            // asignación deben revalidarse contra la nueva aula/periodo
+            // (todavía no guardada) antes de aplicar el cambio.
+            foreach ($asignacion->horarios as $horario) {
+                $errores = $horarioService->verificarChoqueAula(
+                    $asignacion->id_asignacion,
+                    $nuevaAula,
+                    $nuevoPeriodo,
+                    $horario->dia_semana,
+                    $horario->hora_inicio,
+                    $horario->hora_fin,
+                    $horario->id_horario
+                );
+
+                if (!empty($errores)) {
+                    return response()->json([
+                        'message' => 'No se pudo actualizar la asignación: el nuevo horario/aula choca con un horario existente.',
+                        'errores' => $errores,
+                    ], 422);
+                }
+            }
+        }
 
         $asignacion->update($validated);
 
