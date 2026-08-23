@@ -163,11 +163,11 @@ export default function AsignacionForm() {
               </div>
               <div className="flex-1">
                 <label className={input.label}>Inicio</label>
-                <input type="time" value={nuevoHorario.hora_inicio} onChange={(e) => setNuevoHorario({ ...nuevoHorario, hora_inicio: e.target.value })} className={input.base} />
+                <input type="time" value={nuevoHorario.hora_inicio.substring(0, 5)} onChange={(e) => setNuevoHorario({ ...nuevoHorario, hora_inicio: `${e.target.value}:00` })} className={input.base} />
               </div>
               <div className="flex-1">
                 <label className={input.label}>Fin</label>
-                <input type="time" value={nuevoHorario.hora_fin} onChange={(e) => setNuevoHorario({ ...nuevoHorario, hora_fin: e.target.value })} className={input.base} />
+                <input type="time" value={nuevoHorario.hora_fin.substring(0, 5)} onChange={(e) => setNuevoHorario({ ...nuevoHorario, hora_fin: `${e.target.value}:00` })} className={input.base} />
               </div>
               <button onClick={agregarHorario} className={`${btn.primary} shrink-0`}>+ Agregar</button>
             </div>
