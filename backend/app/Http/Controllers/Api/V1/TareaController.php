@@ -7,17 +7,25 @@ use App\Models\Tarea;
 use App\Models\Inscripcion;
 use App\Models\ZonaEvaluacion;
 use App\Services\NotificacionService;
+use App\Traits\VerificaPropietarioCurso;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 
 class TareaController extends Controller
 {
+    use VerificaPropietarioCurso;
+
     public function index(Request $request)
     {
         $perPage = max(1, min((int) $request->query('per_page', 50), 1000));
         $q = trim((string) $request->query('q', ''));
 
         $query = Tarea::with('asignacion.curso', 'entregas');
+
+        $catedratico = $this->catedraticoActual($request);
+        if ($catedratico) {
+            $query->whereHas('asignacion', fn ($a) => $a->where('id_catedratico', $catedratico->id_catedratico));
+        }
 
         if ($q !== '') {
             $query->where(function ($w) use ($q) {
@@ -42,6 +50,8 @@ class TareaController extends Controller
             'id_asignacion' => 'required|exists:asignacion,id_asignacion',
             'id_unidad' => 'nullable|exists:unidad,id_unidad',
         ]);
+
+        $this->verificarCatedratico($request, $validated['id_asignacion']);
 
         $error = $this->validarCapacidadZona($validated['id_zona'], $validated['id_asignacion'], $validated['puntos']);
         if ($error) {
@@ -77,13 +87,17 @@ class TareaController extends Controller
         return response()->json($tarea->load('asignacion.curso'), 201);
     }
 
-    public function show(Tarea $tarea)
+    public function show(Request $request, Tarea $tarea)
     {
+        $this->verificarCatedratico($request, $tarea->id_asignacion);
+
         return $tarea->load('asignacion.curso', 'entregas.alumno');
     }
 
     public function update(Request $request, Tarea $tarea)
     {
+        $this->verificarCatedratico($request, $tarea->id_asignacion);
+
         $validated = $request->validate([
             'titulo' => 'sometimes|string|max:200',
             'descripcion' => 'nullable|string',
@@ -139,14 +153,18 @@ class TareaController extends Controller
         return null;
     }
 
-    public function destroy(Tarea $tarea)
+    public function destroy(Request $request, Tarea $tarea)
     {
+        $this->verificarCatedratico($request, $tarea->id_asignacion);
+
         $tarea->delete();
         return response()->json(null, 204);
     }
 
-    public function porAsignacion($id_asignacion)
+    public function porAsignacion(Request $request, $id_asignacion)
     {
+        $this->verificarCatedratico($request, $id_asignacion);
+
         return Tarea::where('id_asignacion', $id_asignacion)
             ->with('entregas', 'unidad')
             ->orderBy('id_tarea', 'desc')

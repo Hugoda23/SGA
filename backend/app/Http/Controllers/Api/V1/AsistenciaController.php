@@ -15,9 +15,16 @@ class AsistenciaController extends Controller
 {
     use VerificaPropietarioCurso;
 
-    public function index()
+    public function index(Request $request)
     {
-        return Asistencia::with('inscripcion')->get();
+        $query = Asistencia::with('inscripcion');
+
+        $catedratico = $this->catedraticoActual($request);
+        if ($catedratico) {
+            $query->whereHas('inscripcion.asignacion', fn ($a) => $a->where('id_catedratico', $catedratico->id_catedratico));
+        }
+
+        return $query->get();
     }
 
     public function porAsignacion(Request $request, $id_asignacion)
@@ -90,17 +97,24 @@ class AsistenciaController extends Controller
             'estado' => 'nullable|string|max:50',
         ]);
 
+        $idAsignacion = Inscripcion::find($validated['id_inscripcion'])->id_asignacion;
+        $this->verificarCatedratico($request, $idAsignacion);
+
         $asistencia = Asistencia::create($validated);
         return response()->json($asistencia, 201);
     }
 
-    public function show(Asistencia $asistencia)
+    public function show(Request $request, Asistencia $asistencia)
     {
+        $this->verificarCatedratico($request, $asistencia->inscripcion->id_asignacion);
+
         return $asistencia->load('inscripcion');
     }
 
     public function update(Request $request, Asistencia $asistencia)
     {
+        $this->verificarCatedratico($request, $asistencia->inscripcion->id_asignacion);
+
         $validated = $request->validate([
             'fecha' => 'nullable|date',
             'estado' => 'nullable|string|max:50',
@@ -110,8 +124,10 @@ class AsistenciaController extends Controller
         return response()->json($asistencia);
     }
 
-    public function destroy(Asistencia $asistencia)
+    public function destroy(Request $request, Asistencia $asistencia)
     {
+        $this->verificarCatedratico($request, $asistencia->inscripcion->id_asignacion);
+
         $asistencia->delete();
         return response()->json(null, 204);
     }

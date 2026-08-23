@@ -4,13 +4,24 @@ namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
 use App\Models\DetalleCalificacion;
+use App\Models\Inscripcion;
+use App\Traits\VerificaPropietarioCurso;
 use Illuminate\Http\Request;
 
 class DetalleCalificacionController extends Controller
 {
-    public function index()
+    use VerificaPropietarioCurso;
+
+    public function index(Request $request)
     {
-        return DetalleCalificacion::with('evaluacion', 'inscripcion')->get();
+        $query = DetalleCalificacion::with('evaluacion', 'inscripcion');
+
+        $catedratico = $this->catedraticoActual($request);
+        if ($catedratico) {
+            $query->whereHas('inscripcion.asignacion', fn ($a) => $a->where('id_catedratico', $catedratico->id_catedratico));
+        }
+
+        return $query->get();
     }
 
     public function store(Request $request)
@@ -21,18 +32,25 @@ class DetalleCalificacionController extends Controller
             'nota' => 'nullable|numeric|max:100',
         ]);
 
+        $idAsignacion = Inscripcion::find($validated['id_inscripcion'])->id_asignacion;
+        $this->verificarCatedratico($request, $idAsignacion);
+
         $detalle = DetalleCalificacion::create($validated);
 
         return response()->json($detalle, 201);
     }
 
-    public function show(DetalleCalificacion $detalleCalificacion)
+    public function show(Request $request, DetalleCalificacion $detalleCalificacion)
     {
+        $this->verificarCatedratico($request, $detalleCalificacion->inscripcion->id_asignacion);
+
         return $detalleCalificacion->load('evaluacion', 'inscripcion');
     }
 
     public function update(Request $request, DetalleCalificacion $detalleCalificacion)
     {
+        $this->verificarCatedratico($request, $detalleCalificacion->inscripcion->id_asignacion);
+
         $validated = $request->validate([
             'nota' => 'nullable|numeric|max:100',
         ]);
@@ -42,8 +60,10 @@ class DetalleCalificacionController extends Controller
         return response()->json($detalleCalificacion);
     }
 
-    public function destroy(DetalleCalificacion $detalleCalificacion)
+    public function destroy(Request $request, DetalleCalificacion $detalleCalificacion)
     {
+        $this->verificarCatedratico($request, $detalleCalificacion->inscripcion->id_asignacion);
+
         $detalleCalificacion->delete();
 
         return response()->json(null, 204);

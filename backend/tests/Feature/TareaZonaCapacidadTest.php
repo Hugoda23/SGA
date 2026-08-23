@@ -17,23 +17,25 @@ class TareaZonaCapacidadTest extends TestCase
 {
     use RefreshDatabase;
 
-    private function actuarComoCatedratico(): void
+    private function actuarComoCatedratico(): Catedratico
     {
         $usuario = Usuario::factory()->create();
         $rol = Rol::factory()->create(['nombre' => 'catedratico']);
         $permiso = Permiso::create(['nombre' => 'tareas', 'descripcion' => 'Tareas']);
         $rol->permisos()->attach($permiso->id_permiso);
         $usuario->roles()->attach($rol->id_rol);
-        Catedratico::factory()->create(['id_usuario' => $usuario->id_usuario]);
+        $catedratico = Catedratico::factory()->create(['id_usuario' => $usuario->id_usuario]);
 
         $this->actingAs($usuario, 'sanctum');
+
+        return $catedratico;
     }
 
     public function test_rechaza_tarea_que_excede_los_puntos_disponibles_de_la_zona(): void
     {
-        $this->actuarComoCatedratico();
+        $catedratico = $this->actuarComoCatedratico();
 
-        $asignacion = Asignacion::factory()->create();
+        $asignacion = Asignacion::factory()->create(['id_catedratico' => $catedratico->id_catedratico]);
         $zona = ZonaEvaluacion::factory()->create(['id_asignacion' => $asignacion->id_asignacion, 'puntos' => 30]);
         Evaluacion::factory()->create(['id_asignacion' => $asignacion->id_asignacion, 'id_zona' => $zona->id_zona, 'porcentaje' => 25]);
 
@@ -51,9 +53,9 @@ class TareaZonaCapacidadTest extends TestCase
 
     public function test_permite_tarea_que_cabe_en_los_puntos_disponibles_de_la_zona(): void
     {
-        $this->actuarComoCatedratico();
+        $catedratico = $this->actuarComoCatedratico();
 
-        $asignacion = Asignacion::factory()->create();
+        $asignacion = Asignacion::factory()->create(['id_catedratico' => $catedratico->id_catedratico]);
         $zona = ZonaEvaluacion::factory()->create(['id_asignacion' => $asignacion->id_asignacion, 'puntos' => 30]);
         Evaluacion::factory()->create(['id_asignacion' => $asignacion->id_asignacion, 'id_zona' => $zona->id_zona, 'porcentaje' => 20]);
 
@@ -71,9 +73,9 @@ class TareaZonaCapacidadTest extends TestCase
 
     public function test_considera_otras_tareas_ya_asignadas_a_la_misma_zona(): void
     {
-        $this->actuarComoCatedratico();
+        $catedratico = $this->actuarComoCatedratico();
 
-        $asignacion = Asignacion::factory()->create();
+        $asignacion = Asignacion::factory()->create(['id_catedratico' => $catedratico->id_catedratico]);
         $zona = ZonaEvaluacion::factory()->create(['id_asignacion' => $asignacion->id_asignacion, 'puntos' => 30]);
         Tarea::factory()->create(['id_asignacion' => $asignacion->id_asignacion, 'id_zona' => $zona->id_zona, 'puntos' => 25]);
 
@@ -90,9 +92,9 @@ class TareaZonaCapacidadTest extends TestCase
 
     public function test_requiere_zona_y_puntos_para_crear_una_tarea(): void
     {
-        $this->actuarComoCatedratico();
+        $catedratico = $this->actuarComoCatedratico();
 
-        $asignacion = Asignacion::factory()->create();
+        $asignacion = Asignacion::factory()->create(['id_catedratico' => $catedratico->id_catedratico]);
 
         $response = $this->postJson('/api/v1/tareas', [
             'titulo' => 'Tarea sin zona',
@@ -105,9 +107,9 @@ class TareaZonaCapacidadTest extends TestCase
 
     public function test_al_editar_una_tarea_no_se_cuenta_a_si_misma_como_consumo(): void
     {
-        $this->actuarComoCatedratico();
+        $catedratico = $this->actuarComoCatedratico();
 
-        $asignacion = Asignacion::factory()->create();
+        $asignacion = Asignacion::factory()->create(['id_catedratico' => $catedratico->id_catedratico]);
         $zona = ZonaEvaluacion::factory()->create(['id_asignacion' => $asignacion->id_asignacion, 'puntos' => 30]);
         $tarea = Tarea::factory()->create(['id_asignacion' => $asignacion->id_asignacion, 'id_zona' => $zona->id_zona, 'puntos' => 20]);
 

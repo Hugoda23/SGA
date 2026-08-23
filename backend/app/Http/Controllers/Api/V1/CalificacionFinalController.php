@@ -5,13 +5,23 @@ namespace App\Http\Controllers\Api\V1;
 use App\Http\Controllers\Controller;
 use App\Models\CalificacionFinal;
 use App\Models\Inscripcion;
+use App\Traits\VerificaPropietarioCurso;
 use Illuminate\Http\Request;
 
 class CalificacionFinalController extends Controller
 {
-    public function index()
+    use VerificaPropietarioCurso;
+
+    public function index(Request $request)
     {
-        return CalificacionFinal::with('inscripcion')->get();
+        $query = CalificacionFinal::with('inscripcion');
+
+        $catedratico = $this->catedraticoActual($request);
+        if ($catedratico) {
+            $query->whereHas('inscripcion.asignacion', fn ($a) => $a->where('id_catedratico', $catedratico->id_catedratico));
+        }
+
+        return $query->get();
     }
 
     public function store(Request $request)
@@ -23,6 +33,9 @@ class CalificacionFinalController extends Controller
             'observaciones' => 'nullable|string',
         ]);
 
+        $idAsignacion = Inscripcion::find($validated['id_inscripcion'])->id_asignacion;
+        $this->verificarCatedratico($request, $idAsignacion);
+
         if ($this->periodoCerrado($validated['id_inscripcion'])) {
             return $this->respuestaPeriodoCerrado();
         }
@@ -32,13 +45,17 @@ class CalificacionFinalController extends Controller
         return response()->json($calificacion, 201);
     }
 
-    public function show(CalificacionFinal $calificacionFinal)
+    public function show(Request $request, CalificacionFinal $calificacionFinal)
     {
+        $this->verificarCatedratico($request, $calificacionFinal->inscripcion->id_asignacion);
+
         return $calificacionFinal->load('inscripcion');
     }
 
     public function update(Request $request, CalificacionFinal $calificacionFinal)
     {
+        $this->verificarCatedratico($request, $calificacionFinal->inscripcion->id_asignacion);
+
         $validated = $request->validate([
             'unidad_academica' => 'nullable|integer',
             'nota_final' => 'nullable|numeric|max:100',
@@ -54,8 +71,10 @@ class CalificacionFinalController extends Controller
         return response()->json($calificacionFinal);
     }
 
-    public function destroy(CalificacionFinal $calificacionFinal)
+    public function destroy(Request $request, CalificacionFinal $calificacionFinal)
     {
+        $this->verificarCatedratico($request, $calificacionFinal->inscripcion->id_asignacion);
+
         if ($this->periodoCerrado($calificacionFinal->id_inscripcion)) {
             return $this->respuestaPeriodoCerrado();
         }

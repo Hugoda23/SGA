@@ -16,9 +16,16 @@ class EntregaTareaController extends Controller
 {
     use VerificaPropietarioCurso;
 
-    public function index()
+    public function index(Request $request)
     {
-        return EntregaTarea::with('tarea', 'alumno')->get();
+        $query = EntregaTarea::with('tarea', 'alumno');
+
+        $catedratico = $this->catedraticoActual($request);
+        if ($catedratico) {
+            $query->whereHas('tarea.asignacion', fn ($a) => $a->where('id_catedratico', $catedratico->id_catedratico));
+        }
+
+        return $query->get();
     }
 
     public function store(Request $request)
@@ -33,18 +40,25 @@ class EntregaTareaController extends Controller
             'calificacion' => "nullable|numeric|min:0|max:{$maxCalificacion}",
         ]);
 
+        $tareaAsignacion = Tarea::findOrFail($validated['id_tarea'])->id_asignacion;
+        $this->verificarCatedratico($request, $tareaAsignacion);
+
         $entrega = EntregaTarea::create($validated);
 
         return response()->json($entrega, 201);
     }
 
-    public function show(EntregaTarea $entregaTarea)
+    public function show(Request $request, EntregaTarea $entregaTarea)
     {
+        $this->verificarCatedratico($request, $entregaTarea->tarea->id_asignacion);
+
         return $entregaTarea->load('tarea', 'alumno');
     }
 
     public function update(Request $request, EntregaTarea $entregaTarea)
     {
+        $this->verificarCatedratico($request, $entregaTarea->tarea->id_asignacion);
+
         $maxCalificacion = $this->puntosMaximos($entregaTarea->id_tarea);
 
         $validated = $request->validate([
@@ -74,8 +88,10 @@ class EntregaTareaController extends Controller
         return $puntos !== null ? (float) $puntos : 100.0;
     }
 
-    public function destroy(EntregaTarea $entregaTarea)
+    public function destroy(Request $request, EntregaTarea $entregaTarea)
     {
+        $this->verificarCatedratico($request, $entregaTarea->tarea->id_asignacion);
+
         if ($entregaTarea->archivo) {
             Storage::disk('public')->delete($entregaTarea->archivo);
         }

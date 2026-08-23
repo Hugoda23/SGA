@@ -42,4 +42,14 @@ trait VerificaPropietarioCurso
             return response()->json(['error' => 'No autorizado para este curso'], 403)->throwResponse();
         }
     }
+
+    /**
+     * Para listados (index): el catedrático del usuario autenticado, o null
+     * si es personal administrativo (admin/director/secretaria) — en ese
+     * caso el listado no debe filtrarse por curso, ve todo.
+     */
+    private function catedraticoActual(Request $request): ?Catedratico
+    {
+        return Catedratico::where('id_usuario', $request->user()->id_usuario)->first();
+    }
 }
