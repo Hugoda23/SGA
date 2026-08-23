@@ -2,12 +2,13 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use App\Traits\LogsActivity;
 
 class Catedratico extends Model
 {
-    use LogsActivity;
+    use HasFactory, LogsActivity;
 
     protected $table = 'catedratico';
     protected $primaryKey = 'id_catedratico';

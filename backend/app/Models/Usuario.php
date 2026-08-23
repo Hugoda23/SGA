@@ -2,13 +2,14 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Laravel\Sanctum\HasApiTokens;
 use App\Traits\LogsActivity;
 
 class Usuario extends Authenticatable
 {
-    use HasApiTokens, LogsActivity;
+    use HasApiTokens, HasFactory, LogsActivity;
 
     protected $table = 'usuario';
     protected $primaryKey = 'id_usuario';

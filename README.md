@@ -229,6 +229,13 @@ docker compose exec backend php artisan migrate
 docker compose exec backend php artisan make:model Estudiante -mcr
 docker compose exec backend php artisan route:list
 
+# Tests (usan una BD dedicada "sga_test", nunca sga_db — ver backend/phpunit.xml)
+docker compose exec backend php artisan test
+
+# Si el contenedor de BD ya existía antes de agregar sga_test a init.sql,
+# crearla una sola vez con:
+docker compose exec db createdb -U sga_user sga_test
+
 # NPM (desde host)
 docker compose exec frontend npm run build
 docker compose exec frontend npm add zustand

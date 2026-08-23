@@ -2,10 +2,13 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
 class HorarioDetalle extends Model
 {
+    use HasFactory;
+
     protected $table = 'horario_detalle';
     protected $primaryKey = 'id_horario';
     public $timestamps = false;

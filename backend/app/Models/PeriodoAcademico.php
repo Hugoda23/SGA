@@ -2,10 +2,13 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
 class PeriodoAcademico extends Model
 {
+    use HasFactory;
+
     protected $table = 'periodo_academico';
     protected $primaryKey = 'id_periodo';
     public $timestamps = false;

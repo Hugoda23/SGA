@@ -2,10 +2,13 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
 class ZonaEvaluacion extends Model
 {
+    use HasFactory;
+
     protected $table = 'zona_evaluacion';
     protected $primaryKey = 'id_zona';
     public $timestamps = false;

@@ -2,10 +2,13 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
 class CalificacionFinal extends Model
 {
+    use HasFactory;
+
     protected $table = 'calificacion_final';
     protected $primaryKey = 'id_calificacion';
     public $timestamps = false;
