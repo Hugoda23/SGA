@@ -62,6 +62,7 @@ export default function ConfiguracionCurso() {
   const [idUnidadTarea, setIdUnidadTarea] = useState('')
   const [permitirLink, setPermitirLink] = useState(false)
   const [publicando, setPublicando] = useState(false)
+  const [editandoTareaId, setEditandoTareaId] = useState(null)
 
   const [modalUnidad, setModalUnidad] = useState(false)
   const [unidadForm, setUnidadForm] = useState(inicialUnidad)
@@ -192,6 +193,30 @@ export default function ConfiguracionCurso() {
     }
   }
 
+  const limpiarFormularioTarea = () => {
+    setEditandoTareaId(null)
+    setTitulo(''); setDescripcion(''); setPuntos(''); setIdZonaTarea('')
+    setFechaEntrega(''); setHoraEntrega(''); setIdUnidadTarea(''); setPermitirLink(false)
+  }
+
+  const iniciarEdicionTarea = (t) => {
+    setEditandoTareaId(t.id_tarea)
+    setTitulo(t.titulo || '')
+    setDescripcion(t.descripcion || '')
+    setPuntos(t.puntos !== null && t.puntos !== undefined ? String(t.puntos) : '')
+    setIdZonaTarea(t.id_zona ? String(t.id_zona) : '')
+    setIdUnidadTarea(t.id_unidad ? String(t.id_unidad) : '')
+    setPermitirLink(!!t.permitir_link)
+    if (t.fecha_entrega) {
+      const d = new Date(t.fecha_entrega)
+      const pad = (n) => String(n).padStart(2, '0')
+      setFechaEntrega(`${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`)
+      setHoraEntrega(`${pad(d.getHours())}:${pad(d.getMinutes())}`)
+    } else {
+      setFechaEntrega(''); setHoraEntrega('')
+    }
+  }
+
   const handlePublicarTarea = async () => {
     if (!titulo.trim()) { setAlertMessage('El título de la tarea es obligatorio'); return }
     if (idZonaTarea) {
@@ -210,21 +235,24 @@ export default function ConfiguracionCurso() {
         descripcion: descripcion.trim() || null,
         puntos: puntos !== '' ? parseFloat(puntos) : null,
         id_zona: idZonaTarea ? parseInt(idZonaTarea) : null,
-        id_asignacion: parseInt(id_asignacion),
         id_unidad: idUnidadTarea ? parseInt(idUnidadTarea) : null,
         permitir_link: permitirLink,
+        fecha_entrega: fechaEntrega
+          ? (horaEntrega ? `${fechaEntrega} ${horaEntrega}:00` : `${fechaEntrega} 23:59:59`)
+          : null,
       }
-      if (fechaEntrega) {
-        payload.fecha_entrega = horaEntrega
-          ? `${fechaEntrega} ${horaEntrega}:00`
-          : `${fechaEntrega} 23:59:59`
+      if (editandoTareaId) {
+        await api.put(`/v1/tareas/${editandoTareaId}`, payload)
+        setAlertMessage('Tarea actualizada correctamente.')
+      } else {
+        payload.id_asignacion = parseInt(id_asignacion)
+        await api.post('/v1/tareas', payload)
+        setAlertMessage('Tarea publicada correctamente. Los alumnos recibirán una notificación.')
       }
-      await api.post('/v1/tareas', payload)
-      setAlertMessage('Tarea publicada correctamente. Los alumnos recibirán una notificación.')
-      setTitulo(''); setDescripcion(''); setPuntos(''); setIdZonaTarea(''); setFechaEntrega(''); setHoraEntrega(''); setIdUnidadTarea(''); setPermitirLink(false)
+      limpiarFormularioTarea()
       cargarTodo()
     } catch (err) {
-      setAlertMessage(err.response?.data?.message || err.response?.data?.errors?.puntos?.[0] || 'Error al publicar tarea')
+      setAlertMessage(err.response?.data?.message || err.response?.data?.errors?.puntos?.[0] || 'Error al guardar la tarea')
     } finally {
       setPublicando(false)
     }
@@ -281,10 +309,12 @@ export default function ConfiguracionCurso() {
 
   // Puntos disponibles por zona: puntos de la zona menos lo que ya consumen
   // sus actividades (evaluaciones) y las demás tareas ya asignadas a ella.
+  // Si se está editando una tarea, ella misma no cuenta como consumo de su
+  // propia zona (igual que hace el backend), para no subestimar el espacio.
   const zonasConDisponible = (zonas || []).map((z) => {
     const consumidoEvaluaciones = (z.evaluaciones || []).reduce((acc, ev) => acc + (parseFloat(ev.porcentaje) || 0), 0)
     const consumidoTareas = tareas
-      .filter((t) => t.id_zona === z.id_zona)
+      .filter((t) => t.id_zona === z.id_zona && t.id_tarea !== editandoTareaId)
       .reduce((acc, t) => acc + (parseFloat(t.puntos) || 0), 0)
     const disponible = (parseFloat(z.puntos) || 0) - consumidoEvaluaciones - consumidoTareas
     return { ...z, disponible }
@@ -441,7 +471,7 @@ export default function ConfiguracionCurso() {
             <div className="border-b border-primary-100/50 bg-primary-50 p-6 dark:border-primary-900/50 dark:bg-primary-900/20">
               <h2 className="flex items-center gap-2 text-xl font-bold text-primary">
                 <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" /></svg>
-                Nueva Tarea
+                {editandoTareaId ? 'Editar Tarea' : 'Nueva Tarea'}
               </h2>
             </div>
             <div className="flex flex-1 flex-col gap-5 p-6">
@@ -504,9 +534,14 @@ export default function ConfiguracionCurso() {
                   <span className="block text-xs text-neutral-400 dark:text-neutral-500">El alumno podrá entregar la tarea con un enlace en lugar de subir un archivo.</span>
                 </span>
               </label>
-              <div className="mt-2 flex justify-end">
+              <div className="mt-2 flex justify-end gap-3">
+                {editandoTareaId && (
+                  <button onClick={limpiarFormularioTarea} disabled={publicando} className={`${btn.neutral} disabled:opacity-50`}>
+                    Cancelar edición
+                  </button>
+                )}
                 <button onClick={handlePublicarTarea} disabled={publicando} className={`${btn.primary} disabled:opacity-50`}>
-                  {publicando ? 'Publicando...' : 'Publicar Tarea'}
+                  {publicando ? 'Guardando...' : editandoTareaId ? 'Guardar cambios' : 'Publicar Tarea'}
                 </button>
               </div>
             </div>
@@ -523,8 +558,9 @@ export default function ConfiguracionCurso() {
                 tareas.map((t) => {
                   const vencida = t.fecha_entrega && new Date(t.fecha_entrega) < new Date()
                   const zonaTarea = t.id_zona ? zonas.find((z) => z.id_zona === t.id_zona) : null
+                  const enEdicion = editandoTareaId === t.id_tarea
                   return (
-                    <div key={t.id_tarea} className={`rounded-xl border p-3 ${vencida ? 'border-danger-100 bg-danger-50' : 'border-neutral-100 bg-neutral-50 dark:border-neutral-700 dark:bg-neutral-700/50'}`}>
+                    <div key={t.id_tarea} className={`rounded-xl border p-3 ${enEdicion ? 'border-primary bg-primary-50 dark:bg-primary-900/20' : vencida ? 'border-danger-100 bg-danger-50' : 'border-neutral-100 bg-neutral-50 dark:border-neutral-700 dark:bg-neutral-700/50'}`}>
                       <div className="flex items-center justify-between gap-3">
                         <div className="min-w-0 flex-1">
                           <div className="flex items-center gap-2">
@@ -547,7 +583,10 @@ export default function ConfiguracionCurso() {
                             </p>
                           )}
                         </div>
-                        <button onClick={() => navigate(`/entregas-tarea?tarea_id=${t.id_tarea}`)} className="shrink-0 rounded-lg bg-primary px-3 py-1.5 text-xs font-bold text-white transition-all hover:bg-primary-accent-300">Ver entregas</button>
+                        <div className="flex shrink-0 flex-col gap-2">
+                          <button onClick={() => navigate(`/entregas-tarea?tarea_id=${t.id_tarea}`)} className="rounded-lg bg-primary px-3 py-1.5 text-xs font-bold text-white transition-all hover:bg-primary-accent-300">Ver entregas</button>
+                          <button onClick={() => iniciarEdicionTarea(t)} className="rounded-lg border border-primary px-3 py-1.5 text-xs font-bold text-primary transition-all hover:bg-primary-50 dark:hover:bg-primary-900/30">Editar</button>
+                        </div>
                       </div>
                     </div>
                   )
