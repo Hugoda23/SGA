@@ -10,6 +10,7 @@ use App\Models\Asignacion;
 use App\Models\Asistencia;
 use App\Models\Bitacora;
 use App\Models\Configuracion;
+use App\Models\EntregaTarea;
 use App\Models\ReporteGenerado;
 use Barryvdh\DomPDF\Facade\Pdf;
 use SimpleSoftwareIO\QrCode\Facades\QrCode;
@@ -215,6 +216,7 @@ class PdfReportController extends Controller
             'inscripciones.calificacionesFinales',
             'inscripciones.detalleCalificaciones',
             'zonas.evaluaciones',
+            'zonas.tareas',
             'evaluaciones',
         ])->findOrFail($id_asignacion);
         $this->logReporte('acta');
@@ -230,6 +232,16 @@ class PdfReportController extends Controller
         $zonas = $asignacion->zonas;
         $usaZonas = $zonas->isNotEmpty();
 
+        // Entregas de tareas vinculadas a alguna zona, agrupadas por alumno,
+        // para sumarlas al desglose por zona sin hacer una consulta por
+        // alumno (mismo patrón que CalificacionService::recalcularNotasFinales).
+        $idsTareasEnZona = $zonas->flatMap->tareas->pluck('id_tarea');
+        $idsAlumnos = $asignacion->inscripciones->pluck('id_alumno');
+        $entregasPorAlumno = $idsTareasEnZona->isNotEmpty() && $idsAlumnos->isNotEmpty()
+            ? EntregaTarea::whereIn('id_tarea', $idsTareasEnZona)
+                ->whereIn('id_alumno', $idsAlumnos)->get()->groupBy('id_alumno')
+            : collect();
+
         $alumnos = [];
         $aprobados = 0;
         $reprobados = 0;
@@ -239,6 +251,7 @@ class PdfReportController extends Controller
             $nota = $calFinal?->nota_final !== null ? (float) $calFinal->nota_final : null;
 
             $detalles = $inscripcion->detalleCalificaciones;
+            $entregasAlumno = $entregasPorAlumno->get($inscripcion->id_alumno, collect())->keyBy('id_tarea');
 
             // Puntos obtenidos por zona (con el mismo tope por zona que usa
             // CalificacionService), para mostrar el desglose real de la nota
@@ -249,6 +262,9 @@ class PdfReportController extends Controller
                 foreach ($zonaObj->evaluaciones as $ev) {
                     $detalle = $detalles->firstWhere('id_evaluacion', $ev->id_evaluacion);
                     $obtenido += (float) ($detalle?->nota ?? 0);
+                }
+                foreach ($zonaObj->tareas as $t) {
+                    $obtenido += (float) ($entregasAlumno->get($t->id_tarea)?->calificacion ?? 0);
                 }
                 $porZona[$zonaObj->id_zona] = min($obtenido, (float) $zonaObj->puntos);
             }

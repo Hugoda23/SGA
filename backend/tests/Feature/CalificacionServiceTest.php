@@ -5,8 +5,10 @@ namespace Tests\Feature;
 use App\Models\Asignacion;
 use App\Models\CalificacionFinal;
 use App\Models\DetalleCalificacion;
+use App\Models\EntregaTarea;
 use App\Models\Evaluacion;
 use App\Models\Inscripcion;
+use App\Models\Tarea;
 use App\Models\ZonaEvaluacion;
 use App\Services\CalificacionService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -108,5 +110,61 @@ class CalificacionServiceTest extends TestCase
         $final = CalificacionFinal::where('id_inscripcion', $inscripcion->id_inscripcion)->first();
 
         $this->assertEquals(60.0, (float) $final->nota_final);
+    }
+
+    public function test_las_tareas_vinculadas_a_una_zona_cuentan_para_la_nota_final(): void
+    {
+        // Bug arquitectónico corregido: antes CalificacionService solo sumaba
+        // Evaluacion/DetalleCalificacion — una Tarea podía reservar puntos de
+        // una zona pero su calificación (EntregaTarea.calificacion) nunca
+        // llegaba a la nota final del alumno.
+        $asignacion = Asignacion::factory()->create();
+        $inscripcion = Inscripcion::factory()->create(['id_asignacion' => $asignacion->id_asignacion]);
+
+        $zona = ZonaEvaluacion::factory()->create(['id_asignacion' => $asignacion->id_asignacion, 'puntos' => 30]);
+        $evaluacion = Evaluacion::factory()->create(['id_asignacion' => $asignacion->id_asignacion, 'id_zona' => $zona->id_zona]);
+        $tarea = Tarea::factory()->create(['id_asignacion' => $asignacion->id_asignacion, 'id_zona' => $zona->id_zona, 'puntos' => 15]);
+
+        DetalleCalificacion::factory()->create([
+            'id_evaluacion' => $evaluacion->id_evaluacion,
+            'id_inscripcion' => $inscripcion->id_inscripcion,
+            'nota' => 10,
+        ]);
+        EntregaTarea::factory()->create([
+            'id_tarea' => $tarea->id_tarea,
+            'id_alumno' => $inscripcion->id_alumno,
+            'calificacion' => 15,
+        ]);
+
+        CalificacionService::recalcularNotasFinales($asignacion);
+
+        $final = CalificacionFinal::where('id_inscripcion', $inscripcion->id_inscripcion)->first();
+
+        // 10 (evaluación) + 15 (tarea) = 25 de 30 pts de la única zona -> 25*100/30
+        $this->assertEquals(round(25 * 100 / 30, 2), (float) $final->nota_final);
+    }
+
+    public function test_tarea_vinculada_a_zona_se_topea_igual_que_las_evaluaciones(): void
+    {
+        $asignacion = Asignacion::factory()->create();
+        $inscripcion = Inscripcion::factory()->create(['id_asignacion' => $asignacion->id_asignacion]);
+
+        $zona = ZonaEvaluacion::factory()->create(['id_asignacion' => $asignacion->id_asignacion, 'puntos' => 20]);
+        $tarea = Tarea::factory()->create(['id_asignacion' => $asignacion->id_asignacion, 'id_zona' => $zona->id_zona, 'puntos' => 20]);
+
+        // La tarea aporta más de lo que la zona permite en total (no debería
+        // poder pasar la validación de capacidad al crearla, pero si los
+        // datos ya existían, el cálculo igual debe topear correctamente).
+        EntregaTarea::factory()->create([
+            'id_tarea' => $tarea->id_tarea,
+            'id_alumno' => $inscripcion->id_alumno,
+            'calificacion' => 20,
+        ]);
+
+        CalificacionService::recalcularNotasFinales($asignacion);
+
+        $final = CalificacionFinal::where('id_inscripcion', $inscripcion->id_inscripcion)->first();
+
+        $this->assertEquals(100.0, (float) $final->nota_final);
     }
 }

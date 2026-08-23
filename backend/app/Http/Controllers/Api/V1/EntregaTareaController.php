@@ -3,14 +3,19 @@
 namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
+use App\Models\Asignacion;
 use App\Models\EntregaTarea;
 use App\Models\Tarea;
+use App\Services\CalificacionService;
 use App\Services\NotificacionService;
+use App\Traits\VerificaPropietarioCurso;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 
 class EntregaTareaController extends Controller
 {
+    use VerificaPropietarioCurso;
+
     public function index()
     {
         return EntregaTarea::with('tarea', 'alumno')->get();
@@ -50,6 +55,10 @@ class EntregaTareaController extends Controller
 
         $entregaTarea->update($validated);
 
+        if (array_key_exists('calificacion', $validated)) {
+            $this->recalcularSiCuentaParaNota(Tarea::findOrFail($entregaTarea->id_tarea));
+        }
+
         return response()->json($entregaTarea);
     }
 
@@ -75,9 +84,11 @@ class EntregaTareaController extends Controller
     }
 
     // Entregas por tarea (profesor) — solo entregas presentadas
-    public function porTarea($id_tarea)
+    public function porTarea(Request $request, $id_tarea)
     {
         $tarea = Tarea::with('asignacion.inscripciones.alumno')->findOrFail($id_tarea);
+        $this->verificarCatedratico($request, $tarea->id_asignacion);
+
         $entregas = EntregaTarea::where('id_tarea', $id_tarea)->entregadas()->get()->keyBy('id_alumno');
 
         $alumnos = $tarea->asignacion->inscripciones->map(function ($ins) use ($entregas) {
@@ -107,6 +118,9 @@ class EntregaTareaController extends Controller
     public function calificar(Request $request, $id_entrega)
     {
         $entrega = EntregaTarea::findOrFail($id_entrega);
+        $tarea = Tarea::findOrFail($entrega->id_tarea);
+        $this->verificarCatedratico($request, $tarea->id_asignacion);
+
         $maxCalificacion = $this->puntosMaximos($entrega->id_tarea);
 
         $validated = $request->validate([
@@ -114,7 +128,27 @@ class EntregaTareaController extends Controller
         ]);
 
         $entrega->update(['calificacion' => $validated['calificacion']]);
+        $this->recalcularSiCuentaParaNota($tarea);
+
         return response()->json($entrega);
+    }
+
+    /**
+     * Si la tarea está vinculada a una zona de evaluación, su calificación
+     * cuenta para la nota final (ver CalificacionService) — hay que
+     * recalcular. Las tareas sin zona no participan en el cálculo, igual
+     * que las Evaluaciones sin zona cuando existen zonas en el curso.
+     */
+    private function recalcularSiCuentaParaNota(Tarea $tarea): void
+    {
+        if ($tarea->id_zona === null) {
+            return;
+        }
+
+        $asignacion = Asignacion::find($tarea->id_asignacion);
+        if ($asignacion) {
+            CalificacionService::recalcularNotasFinales($asignacion);
+        }
     }
 
     // Subir archivo o enlace de entrega (alumno) — queda en borrador hasta presentar

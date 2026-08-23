@@ -5,21 +5,24 @@ namespace App\Services;
 use App\Models\Asignacion;
 use App\Models\CalificacionFinal;
 use App\Models\DetalleCalificacion;
+use App\Models\EntregaTarea;
 
 class CalificacionService
 {
     /**
      * Recalcula la nota final de cada inscripción de la asignación.
      *
-     * Regla de zonas: cada actividad vale sus `porcentaje` puntos; la nota
-     * obtenida en una zona es la suma de sus actividades (tope = puntos de la
-     * zona). La nota final es la suma de las notas de zona escalada a 100.
-     * Si no hay zonas, usa el promedio ponderado por porcentaje (comportamiento
-     * anterior) para no romper datos existentes.
+     * Regla de zonas: cada actividad (Evaluacion) vale sus `porcentaje`
+     * puntos y cada Tarea vinculada a la zona vale sus `puntos`; la nota
+     * obtenida en una zona es la suma de ambas (tope = puntos de la zona).
+     * La nota final es la suma de las notas de zona escalada a 100. Si no
+     * hay zonas, usa el promedio ponderado por porcentaje de Evaluacion
+     * (comportamiento anterior) para no romper datos existentes — las
+     * Tareas nunca participaron en ese modo legado.
      */
     public static function recalcularNotasFinales(Asignacion $asignacion): void
     {
-        $asignacion->load(['zonas.evaluaciones', 'evaluaciones']);
+        $asignacion->load(['zonas.evaluaciones', 'zonas.tareas', 'evaluaciones', 'inscripciones']);
 
         $zonas = $asignacion->zonas;
         $sinZona = $asignacion->evaluaciones->whereNull('id_zona')->values();
@@ -32,22 +35,42 @@ class CalificacionService
                 return;
             }
 
-            $inscripciones = $asignacion->inscripciones()->pluck('id_inscripcion');
+            $inscripciones = $asignacion->inscripciones;
 
-            foreach ($inscripciones as $idInscripcion) {
+            // Notas de las tareas vinculadas a alguna zona, por alumno — para
+            // no disparar una query por alumno dentro del loop principal.
+            $idsTareasEnZona = $zonas->flatMap->tareas->pluck('id_tarea');
+            $idsAlumnos = $inscripciones->pluck('id_alumno');
+            $entregasPorAlumno = $idsTareasEnZona->isNotEmpty() && $idsAlumnos->isNotEmpty()
+                ? EntregaTarea::whereIn('id_tarea', $idsTareasEnZona)
+                    ->whereIn('id_alumno', $idsAlumnos)
+                    ->get()
+                    ->groupBy('id_alumno')
+                : collect();
+
+            foreach ($inscripciones as $inscripcion) {
+                $idInscripcion = $inscripcion->id_inscripcion;
+
                 $detalles = DetalleCalificacion::whereIn(
                     'id_evaluacion',
                     $asignacion->evaluaciones->pluck('id_evaluacion')
                 )->where('id_inscripcion', $idInscripcion)->get();
 
+                $entregasAlumno = $entregasPorAlumno->get($inscripcion->id_alumno, collect())->keyBy('id_tarea');
+
                 $notaFinal = 0;
 
                 foreach ($zonas as $zona) {
-                    $obtenido = $zona->evaluaciones->sum(function ($ev) use ($detalles) {
+                    $obtenidoEvaluaciones = $zona->evaluaciones->sum(function ($ev) use ($detalles) {
                         $detalle = $detalles->firstWhere('id_evaluacion', $ev->id_evaluacion);
                         return $detalle?->nota ?? 0;
                     });
-                    $notaFinal += min($obtenido, (float) $zona->puntos);
+
+                    $obtenidoTareas = $zona->tareas->sum(function ($t) use ($entregasAlumno) {
+                        return $entregasAlumno->get($t->id_tarea)?->calificacion ?? 0;
+                    });
+
+                    $notaFinal += min($obtenidoEvaluaciones + $obtenidoTareas, (float) $zona->puntos);
                 }
 
                 $notaFinal = round($notaFinal * 100 / $totalPuntos, 2);

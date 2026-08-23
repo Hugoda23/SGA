@@ -140,10 +140,10 @@ Route::prefix('v1')->group(function () {
         Route::get('reportes/pdf/avance-programatico/{id_asignacion}', [PdfReportController::class, 'downloadAvanceProgramatico']);
 
         // Entregas de tarea (profesor + alumno)
-        Route::get('entregas-tarea/por-tarea/{id_tarea}', [EntregaTareaController::class, 'porTarea']);
-        Route::post('entregas-tarea/calificar/{id_entrega}', [EntregaTareaController::class, 'calificar']);
-        Route::post('entregas-tarea/subir-archivo', [EntregaTareaController::class, 'subirArchivo']);
-        Route::post('entregas-tarea/presentar/{id_entrega}', [EntregaTareaController::class, 'presentar']);
+        Route::get('entregas-tarea/por-tarea/{id_tarea}', [EntregaTareaController::class, 'porTarea'])->middleware('permiso:entregas.ver');
+        Route::post('entregas-tarea/calificar/{id_entrega}', [EntregaTareaController::class, 'calificar'])->middleware('permiso:entregas.calificar');
+        Route::post('entregas-tarea/subir-archivo', [EntregaTareaController::class, 'subirArchivo'])->middleware('permiso:entregas.subir');
+        Route::post('entregas-tarea/presentar/{id_entrega}', [EntregaTareaController::class, 'presentar'])->middleware('permiso:entregas.subir');
 
         // API Resources
         Route::apiResource('usuarios',               UsuarioController::class)->middleware('permiso:usuarios');
