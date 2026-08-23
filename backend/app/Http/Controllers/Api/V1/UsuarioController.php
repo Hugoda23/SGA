@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
 use App\Models\Usuario;
+use App\Rules\SecurePassword;
 use App\Traits\PreventsDeleteOnRelatedRecords;
 use Illuminate\Http\Request;
 
@@ -19,7 +20,7 @@ class UsuarioController extends Controller
     {
         $validated = $request->validate([
             'username' => 'required|string|max:100|unique:usuario,username',
-            'password' => 'required|string|max:255',
+            'password' => ['required', 'string', 'max:255', new SecurePassword],
             'estado' => 'nullable|string|max:50',
         ]);
 
@@ -37,19 +38,20 @@ class UsuarioController extends Controller
 
     public function update(Request $request, Usuario $usuario)
     {
+        // El cambio de contraseña tiene su propio endpoint dedicado
+        // (UserManagementController::updatePassword / PUT usuarios/{id}/password),
+        // que además revoca los tokens existentes del usuario. Este método no
+        // acepta "password" a propósito: un segundo camino para cambiarla aquí
+        // (que además nunca llegó a persistirse — quedaba calculado y sin usar)
+        // permitiría cambiarla sin esa revocación de tokens.
         $validated = $request->validate([
             'username' => 'sometimes|string|max:100|unique:usuario,username,' . $usuario->id_usuario . ',id_usuario',
-            'password' => 'sometimes|string|max:255',
             'estado' => 'nullable|string|max:50',
             'nombre' => 'nullable|string|max:100',
             'apellido' => 'nullable|string|max:100',
             'correo' => 'nullable|email|max:100',
             'telefono' => 'nullable|string|max:20',
         ]);
-
-        if (isset($validated['password'])) {
-            $validated['password'] = bcrypt($validated['password']);
-        }
 
         $usuario->update([
             'username' => $validated['username'] ?? $usuario->username,

@@ -76,6 +76,24 @@ class MaterialControllerTest extends TestCase
         Storage::disk('public')->assertExists($material->archivo->ruta);
     }
 
+    public function test_rechaza_un_tipo_de_archivo_no_permitido(): void
+    {
+        Storage::fake('public');
+        $asignacion = Asignacion::factory()->create();
+        $this->actuarComoCatedraticoDe($asignacion);
+
+        $archivo = UploadedFile::fake()->create('virus.exe', 100, 'application/x-msdownload');
+
+        $response = $this->postJson('/api/v1/materiales', [
+            'id_asignacion' => $asignacion->id_asignacion,
+            'titulo' => 'Material sospechoso',
+            'tipo' => 'archivo',
+            'archivo' => $archivo,
+        ]);
+
+        $response->assertStatus(422)->assertJsonValidationErrors('archivo');
+    }
+
     public function test_elimina_material_borra_tambien_el_archivo_de_storage(): void
     {
         Storage::fake('public');

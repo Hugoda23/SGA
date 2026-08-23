@@ -34,7 +34,13 @@ class MaterialController extends Controller
             'titulo' => 'required|string|max:200',
             'descripcion' => 'nullable|string',
             'tipo' => 'required|in:archivo,enlace',
-            'archivo' => 'required_if:tipo,archivo|file|max:20480',
+            'archivo' => [
+                'required_if:tipo,archivo',
+                'file',
+                'max:20480',
+                'mimes:pdf,zip,rar,doc,docx,ppt,pptx,xls,xlsx,odt,txt,jpg,jpeg,png,gif,webp',
+                'mimetypes:application/pdf,application/zip,application/x-rar-compressed,application/vnd.rar,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.ms-powerpoint,application/vnd.openxmlformats-officedocument.presentationml.presentation,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.oasis.opendocument.text,text/plain,image/jpeg,image/png,image/gif,image/webp',
+            ],
             'url' => 'required_if:tipo,enlace|url|max:500',
         ]);
 
