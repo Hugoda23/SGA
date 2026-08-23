@@ -1,0 +1,40 @@
+# Dependencias de Node.js
+node_modules/
+npm-debug.log*
+
+# Build de producción
+dist/
+build/
+
+# Variables de entorno sensibles
+.env
+.env.local
+.env.*.local
+
+# Archivos de sistema
+.DS_Store
+Thumbs.db
+
+# IDE / Editores
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Logs
+*.log
+logs/
+
+# Cache de PHP/Laravel
+backend/storage/framework/cache/*
+backend/storage/framework/sessions/*
+backend/storage/framework/views/*
+backend/storage/logs/*
+!backend/storage/logs/.gitkeep
+
+# Dependencias de PHP
+backend/vendor/
+
+# Archivos compilados de frontend
+frontend/dist/
+frontend/node_modules/
