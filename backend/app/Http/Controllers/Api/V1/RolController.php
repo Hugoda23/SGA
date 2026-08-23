@@ -3,9 +3,11 @@
 namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
+use App\Models\Bitacora;
 use App\Models\Rol;
 use App\Traits\PreventsDeleteOnRelatedRecords;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 
 class RolController extends Controller
 {
@@ -65,7 +67,27 @@ class RolController extends Controller
             'permiso_ids.*' => 'integer|exists:permiso,id_permiso',
         ]);
 
-        $rol->permisos()->sync($validated['permiso_ids'] ?? []);
+        // sync() sobre la tabla pivote rol_permiso no dispara los eventos
+        // Eloquent (created/updated/deleted) que usa LogsActivity, así que
+        // reasignar los permisos de un rol quedaría sin rastro en la
+        // bitácora si no se registra explícitamente aquí.
+        $idsAnteriores = $rol->permisos()->pluck('permiso.id_permiso')->all();
+        $idsNuevos = $validated['permiso_ids'] ?? [];
+
+        $rol->permisos()->sync($idsNuevos);
+
+        if (Auth::id()) {
+            sort($idsAnteriores);
+            sort($idsNuevos);
+            Bitacora::create([
+                'id_usuario' => Auth::id(),
+                'accion' => 'ACTUALIZAR',
+                'tabla_afectada' => 'rol_permiso',
+                'id_registro' => $rol->id_rol,
+                'descripcion' => "Se reasignaron los permisos del rol \"{$rol->nombre}\": [" . implode(',', $idsAnteriores) . '] -> [' . implode(',', $idsNuevos) . ']',
+                'fecha_hora' => now(),
+            ]);
+        }
 
         return response()->json($rol->load('permisos'));
     }

@@ -2,10 +2,13 @@
 
 namespace App\Models;
 
+use App\Traits\LogsActivity;
 use Illuminate\Database\Eloquent\Model;
 
 class Permiso extends Model
 {
+    use LogsActivity;
+
     protected $table = 'permiso';
     protected $primaryKey = 'id_permiso';
     public $timestamps = false;
