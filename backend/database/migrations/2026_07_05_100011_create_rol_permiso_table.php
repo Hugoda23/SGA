@@ -12,6 +12,8 @@ return new class extends Migration
             $table->foreignId('id_rol')->constrained('rol', 'id_rol')->onDelete('cascade');
             $table->foreignId('id_permiso')->constrained('permiso', 'id_permiso')->onDelete('cascade');
             $table->primary(['id_rol', 'id_permiso']);
+
+            $table->index('id_permiso');
         });
     }
 

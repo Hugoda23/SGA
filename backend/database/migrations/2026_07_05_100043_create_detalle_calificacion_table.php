@@ -14,6 +14,9 @@ return new class extends Migration
             $table->foreignId('id_inscripcion')->constrained('inscripcion', 'id_inscripcion')->onDelete('cascade');
             $table->decimal('nota', 5, 2)->nullable();
             $table->timestamps();
+
+            $table->index('id_evaluacion');
+            $table->index('id_inscripcion');
         });
     }
 

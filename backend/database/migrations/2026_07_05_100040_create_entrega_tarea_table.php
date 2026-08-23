@@ -13,8 +13,15 @@ return new class extends Migration
             $table->foreignId('id_tarea')->constrained('tarea', 'id_tarea')->onDelete('cascade');
             $table->foreignId('id_alumno')->constrained('alumno', 'id_alumno')->onDelete('cascade');
             $table->string('archivo', 255)->nullable();
-            $table->timestamp('fecha_entrega')->useCurrent();
+            $table->string('nombre_original', 255)->nullable();
+            $table->string('link', 500)->nullable();
+            $table->string('estado', 20)->default('entregada');
+            $table->timestamp('fecha_entrega')->nullable();
             $table->decimal('calificacion', 5, 2)->nullable();
+
+            $table->index('id_tarea');
+            $table->index('id_alumno');
+            $table->index('estado');
         });
     }
 

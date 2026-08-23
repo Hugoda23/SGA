@@ -14,8 +14,15 @@ return new class extends Migration
             $table->foreignId('id_curso')->constrained('curso', 'id_curso');
             $table->foreignId('id_aula')->constrained('aula', 'id_aula');
             $table->foreignId('id_periodo')->constrained('periodo_academico', 'id_periodo');
-            $table->string('grado', 50)->nullable();
-            $table->string('seccion', 20)->nullable();
+            $table->foreignId('id_grado')->nullable()->constrained('grado', 'id_grado');
+            $table->foreignId('id_seccion')->nullable()->constrained('seccion', 'id_seccion');
+
+            $table->index('id_catedratico');
+            $table->index('id_curso');
+            $table->index('id_aula');
+            $table->index('id_periodo');
+            $table->index('id_grado');
+            $table->index('id_seccion');
         });
     }
 

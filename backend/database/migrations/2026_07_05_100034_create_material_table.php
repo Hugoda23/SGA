@@ -18,6 +18,10 @@ return new class extends Migration
             $table->foreignId('id_archivo')->nullable()->constrained('archivo', 'id_archivo')->nullOnDelete();
             $table->string('url', 500)->nullable();
             $table->timestamp('fecha_publicacion')->useCurrent();
+
+            $table->index('id_asignacion');
+            $table->index('id_unidad');
+            $table->index('id_archivo');
         });
     }
 

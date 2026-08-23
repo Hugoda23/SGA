@@ -13,7 +13,10 @@ return new class extends Migration
             $table->string('username', 100)->unique();
             $table->string('password', 255);
             $table->string('estado', 50)->nullable();
+            $table->boolean('password_change_required')->default(false);
             $table->timestamps();
+
+            $table->index('estado');
         });
     }
 

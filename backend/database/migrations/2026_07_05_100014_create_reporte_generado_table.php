@@ -14,6 +14,9 @@ return new class extends Migration
             $table->string('tipo_reporte', 100)->nullable();
             $table->timestamp('fecha_generacion')->useCurrent();
             $table->decimal('tiempo_generacion', 10, 2)->nullable();
+
+            $table->index('id_usuario');
+            $table->index('fecha_generacion');
         });
     }
 

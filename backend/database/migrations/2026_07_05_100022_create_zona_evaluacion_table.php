@@ -8,17 +8,19 @@ return new class extends Migration
 {
     public function up(): void
     {
-        Schema::create('anuncio', function (Blueprint $table) {
-            $table->id('id_anuncio');
+        Schema::create('zona_evaluacion', function (Blueprint $table) {
+            $table->id('id_zona');
             $table->foreignId('id_asignacion')->constrained('asignacion', 'id_asignacion')->onDelete('cascade');
-            $table->string('titulo', 200);
-            $table->text('contenido')->nullable();
-            $table->timestamp('fecha_publicacion')->useCurrent();
+            $table->string('nombre', 100);
+            $table->decimal('puntos', 5, 2)->default(0);
+            $table->integer('posicion')->default(0);
+
+            $table->index('id_asignacion');
         });
     }
 
     public function down(): void
     {
-        Schema::dropIfExists('anuncio');
+        Schema::dropIfExists('zona_evaluacion');
     }
 };

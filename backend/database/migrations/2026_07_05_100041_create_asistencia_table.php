@@ -13,6 +13,10 @@ return new class extends Migration
             $table->foreignId('id_inscripcion')->constrained('inscripcion', 'id_inscripcion')->onDelete('cascade');
             $table->date('fecha')->nullable();
             $table->string('estado', 50)->nullable();
+
+            $table->index('id_inscripcion');
+            $table->index('fecha');
+            $table->index('estado');
         });
     }
 

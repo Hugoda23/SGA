@@ -13,6 +13,8 @@ return new class extends Migration
             $table->string('nombre_aula', 100);
             $table->integer('capacidad')->nullable();
             $table->foreignId('id_edificio')->nullable()->constrained('edificio', 'id_edificio')->onDelete('cascade');
+
+            $table->index('id_edificio');
         });
     }
 

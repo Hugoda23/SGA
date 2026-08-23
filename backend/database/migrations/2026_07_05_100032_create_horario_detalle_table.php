@@ -14,6 +14,8 @@ return new class extends Migration
             $table->string('dia_semana', 20)->nullable();
             $table->time('hora_inicio')->nullable();
             $table->time('hora_fin')->nullable();
+
+            $table->index('id_asignacion');
         });
     }
 

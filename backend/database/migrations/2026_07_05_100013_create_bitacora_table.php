@@ -16,6 +16,9 @@ return new class extends Migration
             $table->integer('id_registro')->nullable();
             $table->text('descripcion')->nullable();
             $table->timestamp('fecha_hora')->useCurrent();
+
+            $table->index('id_usuario');
+            $table->index('fecha_hora');
         });
     }
 

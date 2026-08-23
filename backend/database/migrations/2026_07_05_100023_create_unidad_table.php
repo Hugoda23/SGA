@@ -18,6 +18,11 @@ return new class extends Migration
             $table->string('estado', 30)->default('planificado');
             $table->date('fecha_inicio')->nullable();
             $table->date('fecha_fin')->nullable();
+
+            $table->index('id_asignacion');
+            $table->index('estado');
+            $table->index('fecha_inicio');
+            $table->index('fecha_fin');
         });
     }
 

@@ -12,7 +12,7 @@ return new class extends Migration
             $table->id('id_curso');
             $table->string('nombre_curso', 150);
             $table->text('descripcion')->nullable();
-            $table->foreignId('id_carrera')->nullable()->constrained('carrera', 'id_carrera')->onDelete('cascade');
+            $table->integer('creditos')->nullable();
         });
     }
 

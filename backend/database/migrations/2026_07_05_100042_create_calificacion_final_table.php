@@ -15,6 +15,8 @@ return new class extends Migration
             $table->decimal('nota_final', 5, 2)->nullable();
             $table->text('observaciones')->nullable();
             $table->timestamp('created_at')->useCurrent();
+
+            $table->unique('id_inscripcion', 'calificacion_final_id_inscripcion_unique');
         });
     }
 

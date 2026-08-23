@@ -14,6 +14,8 @@ return new class extends Migration
             $table->text('mensaje');
             $table->timestamp('fecha')->useCurrent();
             $table->boolean('leido')->default(false);
+
+            $table->index('id_usuario');
         });
     }
 
