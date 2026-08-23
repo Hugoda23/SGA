@@ -88,6 +88,21 @@ class TareaZonaCapacidadTest extends TestCase
         $response->assertStatus(422);
     }
 
+    public function test_requiere_zona_y_puntos_para_crear_una_tarea(): void
+    {
+        $this->actuarComoCatedratico();
+
+        $asignacion = Asignacion::factory()->create();
+
+        $response = $this->postJson('/api/v1/tareas', [
+            'titulo' => 'Tarea sin zona',
+            'id_asignacion' => $asignacion->id_asignacion,
+        ]);
+
+        $response->assertStatus(422)
+            ->assertJsonValidationErrors(['id_zona', 'puntos']);
+    }
+
     public function test_al_editar_una_tarea_no_se_cuenta_a_si_misma_como_consumo(): void
     {
         $this->actuarComoCatedratico();
@@ -99,6 +114,7 @@ class TareaZonaCapacidadTest extends TestCase
         // Bajar de 20 a 25 pts sigue cabiendo (20 disponibles + los 20 que ya tenía = 30 - 0 de otras).
         $response = $this->putJson("/api/v1/tareas/{$tarea->id_tarea}", [
             'puntos' => 25,
+            'id_zona' => $zona->id_zona,
         ]);
 
         $response->assertStatus(200);

@@ -35,19 +35,17 @@ class TareaController extends Controller
         $validated = $request->validate([
             'titulo' => 'required|string|max:200',
             'descripcion' => 'nullable|string',
-            'puntos' => 'nullable|numeric|min:0|max:1000',
-            'id_zona' => 'nullable|exists:zona_evaluacion,id_zona',
+            'puntos' => 'required|numeric|min:0|max:1000',
+            'id_zona' => 'required|exists:zona_evaluacion,id_zona',
             'fecha_entrega' => 'nullable|string',
             'permitir_link' => 'nullable|boolean',
             'id_asignacion' => 'required|exists:asignacion,id_asignacion',
             'id_unidad' => 'nullable|exists:unidad,id_unidad',
         ]);
 
-        if (!empty($validated['id_zona'])) {
-            $error = $this->validarCapacidadZona($validated['id_zona'], $validated['id_asignacion'], $validated['puntos'] ?? null);
-            if ($error) {
-                return $error;
-            }
+        $error = $this->validarCapacidadZona($validated['id_zona'], $validated['id_asignacion'], $validated['puntos']);
+        if ($error) {
+            return $error;
         }
 
         if (!empty($validated['fecha_entrega'])) {
@@ -89,22 +87,18 @@ class TareaController extends Controller
         $validated = $request->validate([
             'titulo' => 'sometimes|string|max:200',
             'descripcion' => 'nullable|string',
-            'puntos' => 'nullable|numeric|min:0|max:1000',
-            'id_zona' => 'nullable|exists:zona_evaluacion,id_zona',
+            'puntos' => 'required|numeric|min:0|max:1000',
+            'id_zona' => 'required|exists:zona_evaluacion,id_zona',
             'fecha_entrega' => 'nullable|string',
             'permitir_link' => 'nullable|boolean',
             'id_asignacion' => 'sometimes|exists:asignacion,id_asignacion',
             'id_unidad' => 'nullable|exists:unidad,id_unidad',
         ]);
 
-        $idZona = array_key_exists('id_zona', $validated) ? $validated['id_zona'] : $tarea->id_zona;
-        if (!empty($idZona)) {
-            $puntos = array_key_exists('puntos', $validated) ? $validated['puntos'] : $tarea->puntos;
-            $idAsignacion = $validated['id_asignacion'] ?? $tarea->id_asignacion;
-            $error = $this->validarCapacidadZona($idZona, $idAsignacion, $puntos, $tarea->id_tarea);
-            if ($error) {
-                return $error;
-            }
+        $idAsignacion = $validated['id_asignacion'] ?? $tarea->id_asignacion;
+        $error = $this->validarCapacidadZona($validated['id_zona'], $idAsignacion, $validated['puntos'], $tarea->id_tarea);
+        if ($error) {
+            return $error;
         }
 
         if (!empty($validated['fecha_entrega'])) {
@@ -131,10 +125,6 @@ class TareaController extends Controller
 
         if (!$zona || $zona->id_asignacion != $idAsignacion) {
             return response()->json(['errors' => ['id_zona' => ['La zona no pertenece a esta asignación.']]], 422);
-        }
-
-        if ($puntosTarea === null) {
-            return response()->json(['errors' => ['puntos' => ['Debes indicar los puntos de la tarea para asignarla a una zona.']]], 422);
         }
 
         $disponible = $zona->puntosDisponibles(null, $idTareaExcluir);

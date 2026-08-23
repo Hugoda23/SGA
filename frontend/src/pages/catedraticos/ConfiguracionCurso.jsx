@@ -219,22 +219,21 @@ export default function ConfiguracionCurso() {
 
   const handlePublicarTarea = async () => {
     if (!titulo.trim()) { setAlertMessage('El título de la tarea es obligatorio'); return }
-    if (idZonaTarea) {
-      const zonaSeleccionada = zonasConDisponible.find((z) => z.id_zona === parseInt(idZonaTarea))
-      const puntosNum = puntos !== '' ? parseFloat(puntos) : null
-      if (puntosNum === null) { setAlertMessage('Indica los puntos de la tarea para asignarla a una zona'); return }
-      if (zonaSeleccionada && puntosNum > zonaSeleccionada.disponible) {
-        setAlertMessage(`La zona "${zonaSeleccionada.nombre}" solo tiene ${zonaSeleccionada.disponible} pts disponibles.`)
-        return
-      }
+    if (!idZonaTarea) { setAlertMessage('Selecciona la zona de evaluación a la que pertenece la tarea'); return }
+    const puntosNum = puntos !== '' ? parseFloat(puntos) : null
+    if (puntosNum === null) { setAlertMessage('Indica los puntos que vale la tarea'); return }
+    const zonaSeleccionada = zonasConDisponible.find((z) => z.id_zona === parseInt(idZonaTarea))
+    if (zonaSeleccionada && puntosNum > zonaSeleccionada.disponible) {
+      setAlertMessage(`La zona "${zonaSeleccionada.nombre}" solo tiene ${zonaSeleccionada.disponible} pts disponibles.`)
+      return
     }
     setPublicando(true)
     try {
       const payload = {
         titulo: titulo.trim(),
         descripcion: descripcion.trim() || null,
-        puntos: puntos !== '' ? parseFloat(puntos) : null,
-        id_zona: idZonaTarea ? parseInt(idZonaTarea) : null,
+        puntos: puntosNum,
+        id_zona: parseInt(idZonaTarea),
         id_unidad: idUnidadTarea ? parseInt(idUnidadTarea) : null,
         permitir_link: permitirLink,
         fecha_entrega: fechaEntrega
@@ -495,29 +494,30 @@ export default function ConfiguracionCurso() {
                 </select>
               </div>
               <div>
-                <label className={input.label}>Puntos que vale la tarea (opcional)</label>
-                <input type="number" min="0" max="1000" step="0.01" value={puntos} onChange={(e) => setPuntos(e.target.value)} placeholder="Ej. 10" className={input.base} />
-                <p className="mt-1 text-xs text-neutral-400 dark:text-neutral-500">Si no indicas puntos, la calificación de las entregas se registrará sobre 100.</p>
+                <label className={input.label}>Zona de evaluación *</label>
+                {zonasConDisponible.length === 0 ? (
+                  <p className="rounded-lg bg-warning-50 p-2.5 text-xs font-semibold text-warning dark:bg-warning-900/30">
+                    Este curso todavía no tiene zonas de evaluación. Crea al menos una en la pestaña &quot;Evaluaciones&quot; antes de publicar tareas.
+                  </p>
+                ) : (
+                  <>
+                    <select value={idZonaTarea} onChange={(e) => setIdZonaTarea(e.target.value)} className={input.base}>
+                      <option value="" disabled>Selecciona una zona…</option>
+                      {zonasConDisponible.map((z) => (
+                        <option key={z.id_zona} value={z.id_zona} disabled={z.disponible <= 0}>
+                          {z.nombre} — {z.disponible > 0 ? `${z.disponible} pts disponibles` : 'sin puntos disponibles'}
+                        </option>
+                      ))}
+                    </select>
+                    <p className="mt-1 text-xs text-neutral-400 dark:text-neutral-500">
+                      Los puntos de la tarea se descuentan del presupuesto de esta zona — no se puede exceder lo disponible.
+                    </p>
+                  </>
+                )}
               </div>
               <div>
-                <label className={input.label}>Zona de evaluación (opcional)</label>
-                <select value={idZonaTarea} onChange={(e) => setIdZonaTarea(e.target.value)} className={input.base}>
-                  <option value="">Sin vincular a una zona</option>
-                  {zonasConDisponible.map((z) => (
-                    <option key={z.id_zona} value={z.id_zona} disabled={z.disponible <= 0}>
-                      {z.nombre} — {z.disponible > 0 ? `${z.disponible} pts disponibles` : 'sin puntos disponibles'}
-                    </option>
-                  ))}
-                </select>
-                <p className="mt-1 text-xs text-neutral-400 dark:text-neutral-500">
-                  Si vinculas la tarea a una zona, sus puntos se descuentan del presupuesto de esa zona — no se puede exceder lo disponible.
-                </p>
-                {puntos !== '' && !idZonaTarea && (
-                  <p className="mt-2 flex items-start gap-1.5 rounded-lg bg-warning-50 p-2.5 text-xs font-semibold text-warning dark:bg-warning-900/30">
-                    <svg className="mt-0.5 h-4 w-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>
-                    Esta tarea no está vinculada a ninguna zona: sus {puntos} pts no se sumarán a la Estructura de evaluación. Selecciona una zona arriba si quieres que cuenten.
-                  </p>
-                )}
+                <label className={input.label}>Puntos que vale la tarea *</label>
+                <input type="number" min="0" max="1000" step="0.01" value={puntos} onChange={(e) => setPuntos(e.target.value)} placeholder="Ej. 10" className={input.base} />
               </div>
               <div>
                 <label className={input.label}>Fecha de Entrega</label>
@@ -546,7 +546,7 @@ export default function ConfiguracionCurso() {
                     Cancelar edición
                   </button>
                 )}
-                <button onClick={handlePublicarTarea} disabled={publicando} className={`${btn.primary} disabled:opacity-50`}>
+                <button onClick={handlePublicarTarea} disabled={publicando || zonasConDisponible.length === 0} className={`${btn.primary} disabled:opacity-50`}>
                   {publicando ? 'Guardando...' : editandoTareaId ? 'Guardar cambios' : 'Publicar Tarea'}
                 </button>
               </div>

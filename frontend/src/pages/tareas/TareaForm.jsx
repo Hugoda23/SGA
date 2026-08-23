@@ -7,14 +7,22 @@ import Modal from '../../components/Modal'
 
 export default function TareaForm() {
   const { id } = useParams(); const isEdit = !!id; const navigate = useNavigate()
-  const [form, setForm] = useState({ titulo: '', descripcion: '', puntos: '', fecha_entrega: '', id_asignacion: '' })
+  const [form, setForm] = useState({ titulo: '', descripcion: '', puntos: '', id_zona: '', fecha_entrega: '', id_asignacion: '' })
   const [asignaciones, setAsignaciones] = useState([])
+  const [zonas, setZonas] = useState([])
   const [alertMessage, setAlertMessage] = useState(null)
 
   useEffect(() => {
     api.get('/v1/asignaciones').then((r) => setAsignaciones(normList(r.data).map((a) => ({ value: a.id_asignacion, label: `${a.curso?.nombre_curso} - ${a.catedratico?.nombre}` }))))
-    if (isEdit) api.get(`/v1/tareas/${id}`).then((r) => { const t = r.data; setForm({ titulo: t.titulo || '', descripcion: t.descripcion || '', puntos: t.puntos ?? '', fecha_entrega: t.fecha_entrega || '', id_asignacion: t.id_asignacion || '' }) })
+    if (isEdit) api.get(`/v1/tareas/${id}`).then((r) => { const t = r.data; setForm({ titulo: t.titulo || '', descripcion: t.descripcion || '', puntos: t.puntos ?? '', id_zona: t.id_zona || '', fecha_entrega: t.fecha_entrega || '', id_asignacion: t.id_asignacion || '' }) })
   }, [id, isEdit])
+
+  useEffect(() => {
+    if (!form.id_asignacion) { setZonas([]); return }
+    api.get(`/v1/catedratico/configuracion-curso/${form.id_asignacion}/zonas`)
+      .then((r) => setZonas(normList(r.data)))
+      .catch(() => setZonas([]))
+  }, [form.id_asignacion])
 
   const handleChange = (e) => setForm({ ...form, [e.target.name]: e.target.value })
   const handleSubmit = async (e) => {
@@ -40,9 +48,21 @@ export default function TareaForm() {
       <form onSubmit={handleSubmit} className="rounded-xl bg-white p-6 shadow-4 space-y-4 dark:bg-surface-dark">
         <FormInput label="Título" name="titulo" value={form.titulo} onChange={handleChange} required placeholder="Título de la tarea" />
         <FormInput label="Descripción" name="descripcion" type="textarea" value={form.descripcion} onChange={handleChange} placeholder="Descripción" />
-        <FormInput label="Puntos que vale la tarea" name="puntos" type="number" value={form.puntos} onChange={handleChange} placeholder="Ej. 10 (si se deja vacío, se califica sobre 100)" />
-        <FormInput label="Fecha de Entrega" name="fecha_entrega" type="date" value={form.fecha_entrega} onChange={handleChange} />
         <FormInput label="Asignación" name="id_asignacion" type="select" value={form.id_asignacion} onChange={handleChange} required options={asignaciones} />
+        <FormInput
+          label="Zona de evaluación"
+          name="id_zona"
+          type="select"
+          value={form.id_zona}
+          onChange={handleChange}
+          required
+          options={zonas.map((z) => ({ value: z.id_zona, label: `${z.nombre} (${z.puntos} pts)` }))}
+        />
+        {form.id_asignacion && zonas.length === 0 && (
+          <p className="text-xs font-semibold text-warning">Esta asignación no tiene zonas de evaluación. Créalas primero en Configuración de Curso.</p>
+        )}
+        <FormInput label="Puntos que vale la tarea" name="puntos" type="number" value={form.puntos} onChange={handleChange} required placeholder="Ej. 10" />
+        <FormInput label="Fecha de Entrega" name="fecha_entrega" type="date" value={form.fecha_entrega} onChange={handleChange} />
         <div className="flex gap-3 pt-2">
           <button type="submit" className={btn.primary}>{isEdit ? 'Actualizar' : 'Crear'}</button>
           <button type="button" onClick={() => navigate('/tareas')} className={btn.neutral}>Cancelar</button>
