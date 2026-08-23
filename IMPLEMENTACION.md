@@ -1,5 +1,14 @@
 # IMPLEMENTACIÓN — Sistema de Gestión Académica (SGA)
 
+> **⚠️ Documento histórico, congelado al 2026-08-09.** Describe las decisiones del
+> bootstrap inicial del proyecto (estructura base, modelos, migraciones). El sistema
+> siguió evolucionando bastante después de esta fecha — para la estructura, el setup y
+> las funcionalidades **actuales**, usar siempre **`README.md`** como fuente de verdad.
+> Este archivo se conserva solo como bitácora de diseño de esa etapa inicial; varios
+> detalles puntuales (por ejemplo, conteos de modelos/controladores/migraciones, o la
+> mención de `User.php` más abajo — ese modelo se eliminó por completo después) ya no
+> reflejan el estado real del código.
+
 > **Fecha de actualización:** 2026-08-09
 > **Autor:** Arquitecto Senior / DevSecOps
 > **Stack:** Laravel · React + Vite + Tailwind CSS + TW Elements · PostgreSQL · Docker

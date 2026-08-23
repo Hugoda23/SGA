@@ -67,6 +67,9 @@ Para producción, ver `.env.production.example` y la sección **Despliegue en pr
 
 ##  Pasos de Configuración Inicial
 
+El proyecto (backend Laravel y frontend React) ya está construido — estos pasos son para
+clonar el repositorio y levantarlo, no para crearlo desde cero.
+
 ### Prerrequisitos
 - Docker Engine ≥ 24.x
 - Docker Compose ≥ 2.x
@@ -74,140 +77,59 @@ Para producción, ver `.env.production.example` y la sección **Despliegue en pr
 
 ---
 
-### PASO 1 — Clonar y preparar el entorno
+### PASO 1 — Clonar y configurar las variables de entorno
 
 ```bash
-# 1. Entrar a la carpeta del proyecto
-cd /home/hugoda/SGA
+# 1. Clonar el repositorio
+git clone https://github.com/Hugoda23/SGA.git
+cd SGA
 
-# 2. Copiar las variables de entorno
+# 2. Copiar las plantillas de variables de entorno (ninguna se sube a Git)
 cp .env.example .env
+cp backend/.env.example backend/.env
+```
 
-# 3. Construir las imágenes Docker (primera vez, tarda ~3-5 min)
+Ver la sección **Variables de entorno — qué archivo editar** más arriba si necesitas ajustar
+algo (contraseña de BD, dominio, etc.) antes de continuar — los valores por defecto de las
+plantillas ya sirven para desarrollo local tal cual.
+
+---
+
+### PASO 2 — Construir y levantar los contenedores
+
+```bash
+# 1. Construir las imágenes (primera vez, tarda ~3-5 min)
 docker compose build
-```
 
----
-
-### PASO 2 — Inicializar Laravel en el contenedor
-
-```bash
-# 1. Levantar SOLO el contenedor de base de datos primero
-docker compose up -d db
-
-# 2. Esperar que esté saludable (healthcheck)
-docker compose ps
-
-# 3. Levantar el backend (PHP-FPM)
-docker compose up -d backend
-
-# 4. Entrar al contenedor del backend
-docker compose exec backend bash
-
-# === DENTRO DEL CONTENEDOR ===
-
-# 5. Crear el proyecto Laravel (si la carpeta backend está vacía)
-composer create-project laravel/laravel . --prefer-dist
-
-# 6. Configurar el .env de Laravel para PostgreSQL
-# Editar el archivo .env dentro de /var/www/html/
-# DB_CONNECTION=pgsql
-# DB_HOST=db
-# DB_PORT=5432
-# DB_DATABASE=sga_db
-# DB_USERNAME=sga_user
-# DB_PASSWORD=sga_secret
-
-# 7. Generar la clave de aplicación
-php artisan key:generate
-
-# 8. Correr las migraciones
-php artisan migrate
-
-# 9. (Opcional) Poblar la BD con datos de prueba
-php artisan db:seed
-
-# 10. Ajustar permisos de almacenamiento
-chmod -R 775 storage bootstrap/cache
-chown -R www:www storage bootstrap/cache
-
-# Salir del contenedor
-exit
-```
-
----
-
-### PASO 3 — Inicializar React + Vite + Tailwind CSS
-
-```bash
-# 1. Levantar el contenedor del frontend
-docker compose up -d frontend
-
-# 2. Entrar al contenedor del frontend
-docker compose exec frontend sh
-
-# === DENTRO DEL CONTENEDOR ===
-
-# 3. Crear el proyecto Vite + React (si la carpeta frontend está vacía)
-npm create vite@latest . -- --template react
-
-# 4. Instalar dependencias base
-npm install
-
-# 5. Instalar Tailwind CSS v4 (recomendado) y sus dependencias
-npm install -D tailwindcss@latest @tailwindcss/vite
-
-# 6. Instalar dependencias adicionales recomendadas
-npm install axios react-router-dom
-npm install -D @types/react @types/react-dom
-
-# Salir del contenedor
-exit
-```
-
----
-
-### PASO 4 — Configurar Tailwind CSS
-
-**Editar `frontend/src/index.css`** — reemplazar contenido con:
-
-```css
-@import "tailwindcss";
-```
-
-**Editar `frontend/vite.config.js`** — agregar el plugin de Tailwind:
-
-```js
-import { defineConfig } from 'vite'
-import react from '@vitejs/plugin-react'
-import tailwindcss from '@tailwindcss/vite'
-
-export default defineConfig({
-  plugins: [
-    react(),
-    tailwindcss(),
-  ],
-  server: {
-    host: '0.0.0.0',
-    port: 5173,
-  },
-})
-```
-
----
-
-### PASO 5 — Levantar todo el entorno
-
-```bash
-# Levantar todos los servicios
+# 2. Levantar todo el stack (db, backend, webserver/Nginx, frontend)
+# el backend espera automáticamente a que la BD esté saludable
 docker compose up -d
 
-# Verificar que todos los contenedores están corriendo
+# 3. Verificar que todos los contenedores están corriendo
 docker compose ps
-
-# Ver los logs en tiempo real
-docker compose logs -f
 ```
+
+---
+
+### PASO 3 — Inicializar Laravel (clave, migraciones, datos de prueba)
+
+```bash
+# 1. Generar la clave de aplicación
+docker compose exec backend php artisan key:generate
+
+# 2. Correr las migraciones (crea todas las tablas en sga_db)
+docker compose exec backend php artisan migrate
+
+# 3. Poblar la BD con datos de demo end-to-end (cursos, alumnos, asignaciones,
+#    inscripciones, roles y permisos) — ver backend/database/seeders/DatabaseSeeder.php
+docker compose exec backend php artisan db:seed
+
+# 4. Crear la base de datos dedicada para tests (una sola vez)
+docker compose exec db createdb -U sga_user sga_test
+```
+
+Con esto el sistema ya queda usable de punta a punta — ver **URLs de Acceso** abajo para
+entrar, y `docker compose logs -f` para ver logs en tiempo real de todos los servicios.
 
 ---
 
@@ -215,9 +137,9 @@ docker compose logs -f
 
 | Servicio | URL | Descripción |
 |---|---|---|
-| **API Laravel** | http://localhost:8080/api | Backend RESTful |
-| **React App** | http://localhost:3000 | Frontend SPA |
-| **PostgreSQL** | localhost:5433 | Puerto local BD |
+| **App (React, SPA)** | http://localhost:3002 | Frontend — servidor de desarrollo de Vite con hot-reload |
+| **API Laravel** | http://localhost:8081/api | Backend RESTful, servido por Nginx → PHP-FPM |
+| **PostgreSQL** | localhost:5433 | Puerto local de la BD (usuario/BD en `.env`) |
 
 ---
 
@@ -299,7 +221,7 @@ Route::prefix('v1')->group(function () {
 });
 ```
 
-**Ejemplo de endpoint:** `GET http://localhost:8080/api/v1/estudiantes`
+**Ejemplo de endpoint:** `GET http://localhost:8081/api/v1/estudiantes`
 
 ---
 
