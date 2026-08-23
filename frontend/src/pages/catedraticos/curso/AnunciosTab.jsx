@@ -102,7 +102,7 @@ export default function AnunciosTab({ idAsignacion, anuncios, reload, setAlert }
           ) : (
             anuncios.map((a) => (
               <div key={a.id_anuncio} className="rounded-xl border border-neutral-100 bg-neutral-50 p-4 dark:border-neutral-700 dark:bg-neutral-700/50">
-                <div className="flex items-start justify-between gap-3">
+                <div className="flex flex-wrap items-start justify-between gap-3">
                   <div className="min-w-0 flex-1">
                     <p className="text-sm font-bold text-neutral-700 dark:text-neutral-200">{a.titulo}</p>
                     {a.contenido && <p className="mt-1 whitespace-pre-line text-xs text-neutral-500 dark:text-neutral-400">{a.contenido}</p>}
@@ -110,9 +110,9 @@ export default function AnunciosTab({ idAsignacion, anuncios, reload, setAlert }
                       {a.fecha_publicacion ? new Date(a.fecha_publicacion).toLocaleString('es-GT') : ''}
                     </p>
                   </div>
-                  <div className="flex shrink-0 gap-2">
-                    <button onClick={() => abrirEditar(a)} className={`${btn.outline} !px-3 !py-1.5`}>Editar</button>
-                    <button onClick={() => setAnuncioEliminar(a.id_anuncio)} className={`${btn.outlineDanger} !px-3 !py-1.5`}>Eliminar</button>
+                  <div className="flex w-full flex-wrap justify-end gap-2 sm:w-auto">
+                    <button onClick={() => abrirEditar(a)} className={`${btn.outline} !px-3 !py-1.5 whitespace-nowrap`}>Editar</button>
+                    <button onClick={() => setAnuncioEliminar(a.id_anuncio)} className={`${btn.outlineDanger} !px-3 !py-1.5 whitespace-nowrap`}>Eliminar</button>
                   </div>
                 </div>
               </div>

@@ -187,7 +187,7 @@ export default function MaterialesTab({ idAsignacion, unidades, materiales, relo
           ) : (
             materiales.map((m) => (
               <div key={m.id_material} className="rounded-xl border border-neutral-100 bg-neutral-50 p-4 dark:border-neutral-700 dark:bg-neutral-700/50">
-                <div className="flex items-start justify-between gap-3">
+                <div className="flex flex-wrap items-start justify-between gap-3">
                   <div className="min-w-0 flex-1">
                     <div className="flex flex-wrap items-center gap-2">
                       <p className="truncate text-sm font-bold text-neutral-700 dark:text-neutral-200">{m.titulo}</p>
@@ -205,16 +205,16 @@ export default function MaterialesTab({ idAsignacion, unidades, materiales, relo
                       {m.fecha_publicacion ? new Date(m.fecha_publicacion).toLocaleString('es-GT') : ''}
                     </p>
                   </div>
-                  <div className="flex shrink-0 gap-2">
+                  <div className="flex w-full flex-wrap justify-end gap-2 sm:w-auto">
                     {m.tipo === 'archivo' ? (
-                      <button onClick={() => descargar(m)} disabled={descargando === m.id_material} className={`${btn.outline} !px-3 !py-1.5 disabled:opacity-50`}>
+                      <button onClick={() => descargar(m)} disabled={descargando === m.id_material} className={`${btn.outline} !px-3 !py-1.5 whitespace-nowrap disabled:opacity-50`}>
                         {descargando === m.id_material ? '...' : 'Descargar'}
                       </button>
                     ) : (
-                      <a href={m.url} target="_blank" rel="noreferrer" className={`${btn.outline} !px-3 !py-1.5`}>Abrir</a>
+                      <a href={m.url} target="_blank" rel="noreferrer" className={`${btn.outline} !px-3 !py-1.5 whitespace-nowrap`}>Abrir</a>
                     )}
-                    <button onClick={() => abrirEditar(m)} className={`${btn.outline} !px-3 !py-1.5`}>Editar</button>
-                    <button onClick={() => setMaterialEliminar(m.id_material)} className={`${btn.outlineDanger} !px-3 !py-1.5`}>Eliminar</button>
+                    <button onClick={() => abrirEditar(m)} className={`${btn.outline} !px-3 !py-1.5 whitespace-nowrap`}>Editar</button>
+                    <button onClick={() => setMaterialEliminar(m.id_material)} className={`${btn.outlineDanger} !px-3 !py-1.5 whitespace-nowrap`}>Eliminar</button>
                   </div>
                 </div>
               </div>
