@@ -1,0 +1,67 @@
+name: Tests
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  tests:
+    runs-on: ubuntu-latest
+
+    # Las migraciones usan DDL específico de PostgreSQL (CHECK constraints,
+    # índices únicos parciales) que no es válido en SQLite — por eso los
+    # tests corren aquí contra Postgres real, igual que en desarrollo
+    # (ver docker-compose.yml, servicio "db").
+    services:
+      db:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_DB: sga_test
+          POSTGRES_USER: sga_user
+          POSTGRES_PASSWORD: sga_secret
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U sga_user"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    defaults:
+      run:
+        working-directory: backend
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+          extensions: dom, curl, libxml, mbstring, zip, pcntl, pdo, pdo_pgsql, pgsql, bcmath, intl, gd
+          coverage: none
+
+      - name: Alias "db" a localhost
+        # phpunit.xml y scripts/test.sh fijan DB_HOST=db (el nombre del
+        # servicio en la red de Docker de desarrollo) para que sea el mismo
+        # valor en todos lados; aquí el servicio de Postgres se expone en
+        # localhost, así que se alía ese nombre en /etc/hosts.
+        run: echo "127.0.0.1 db" | sudo tee -a /etc/hosts
+
+      - name: Install Composer dependencies
+        run: composer install --prefer-dist --no-interaction --no-progress
+
+      - name: Copy environment file
+        run: cp .env.example .env
+
+      - name: Generate app key
+        run: php artisan key:generate
+
+      - name: Execute tests
+        run: composer test
