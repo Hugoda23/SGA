@@ -6,6 +6,14 @@ import Modal from '../../components/Modal'
 
 const FORMATOS_ACEPTADOS = '.pdf,.zip,.rar,.doc,.docx,.ppt,.pptx,.xls,.xlsx,.odt,.txt,.jpg,.jpeg,.png,.gif'
 
+const ESTADOS_FILTRO = [
+  { value: '', label: 'Todos los estados' },
+  { value: 'pendiente', label: 'Pendientes' },
+  { value: 'borrador', label: 'En borrador' },
+  { value: 'entregada', label: 'Entregadas' },
+  { value: 'vencida', label: 'Vencidas' },
+]
+
 export default function MisTareas() {
   const { user } = useAuth()
   const [tareas, setTareas] = useState([])
@@ -18,6 +26,8 @@ export default function MisTareas() {
   const [modalLinkTarea, setModalLinkTarea] = useState(null)
   const [linkValue, setLinkValue] = useState('')
   const [enviandoLink, setEnviandoLink] = useState(false)
+  const [filtroCurso, setFiltroCurso] = useState('')
+  const [filtroEstado, setFiltroEstado] = useState('')
 
   const isAlumno = user?.roles?.some((r) => r.nombre === 'alumno')
 
@@ -102,6 +112,24 @@ export default function MisTareas() {
     }
   }
 
+  const estadoDeTarea = (t) => {
+    const fechaLimite = t.fecha_entrega ? new Date(t.fecha_entrega) : null
+    const vencida = fechaLimite && fechaLimite < new Date()
+    const entrega = t.mi_entrega
+    if (entrega?.estado === 'entregada') return 'entregada'
+    if (entrega?.estado === 'borrador') return 'borrador'
+    if (vencida) return 'vencida'
+    return 'pendiente'
+  }
+
+  const cursosDisponibles = [...new Set(tareas.map((t) => t.curso).filter(Boolean))].sort()
+
+  const tareasFiltradas = tareas.filter((t) => {
+    if (filtroCurso && t.curso !== filtroCurso) return false
+    if (filtroEstado && estadoDeTarea(t) !== filtroEstado) return false
+    return true
+  })
+
   if (!isAlumno) {
     return (
       <div className="max-w-4xl mx-auto pb-12">
@@ -118,6 +146,31 @@ export default function MisTareas() {
       <h1 className="text-3xl font-bold text-neutral-800 dark:text-neutral-100 mb-2">Mis Tareas</h1>
       <p className="text-neutral-500 font-medium mb-8">Tareas pendientes y entregadas.</p>
 
+      {!loading && tareas.length > 0 && (
+        <div className="mb-6 flex flex-col gap-3 rounded-xl bg-white p-4 shadow-4 dark:bg-surface-dark sm:flex-row">
+          <select
+            value={filtroCurso}
+            onChange={(e) => setFiltroCurso(e.target.value)}
+            className="w-full rounded-lg border border-neutral-300 bg-white px-3 py-2 text-sm text-neutral-700 focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary dark:border-neutral-600 dark:bg-neutral-800 dark:text-neutral-200 sm:w-auto sm:flex-1"
+          >
+            <option value="">Todos los cursos</option>
+            {cursosDisponibles.map((c) => <option key={c} value={c}>{c}</option>)}
+          </select>
+          <select
+            value={filtroEstado}
+            onChange={(e) => setFiltroEstado(e.target.value)}
+            className="w-full rounded-lg border border-neutral-300 bg-white px-3 py-2 text-sm text-neutral-700 focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary dark:border-neutral-600 dark:bg-neutral-800 dark:text-neutral-200 sm:w-auto sm:flex-1"
+          >
+            {ESTADOS_FILTRO.map((e) => <option key={e.value} value={e.value}>{e.label}</option>)}
+          </select>
+          {(filtroCurso || filtroEstado) && (
+            <button type="button" onClick={() => { setFiltroCurso(''); setFiltroEstado('') }} className={`${btn.neutral} shrink-0`}>
+              Limpiar filtros
+            </button>
+          )}
+        </div>
+      )}
+
       {loading && (
         <div className="flex flex-col items-center py-16 text-neutral-500">
           <div className="h-10 w-10 animate-spin rounded-full border-4 border-primary-100 border-t-primary mb-4"></div>
@@ -132,7 +185,13 @@ export default function MisTareas() {
         </div>
       )}
 
-      {!loading && tareas.map((t) => {
+      {!loading && tareas.length > 0 && tareasFiltradas.length === 0 && (
+        <div className="rounded-xl bg-white p-12 text-center shadow-4 dark:bg-surface-dark">
+          <p className="text-lg font-semibold text-neutral-600 dark:text-neutral-300">Ninguna tarea coincide con los filtros</p>
+        </div>
+      )}
+
+      {!loading && tareasFiltradas.map((t) => {
         const fechaLimite = t.fecha_entrega ? new Date(t.fecha_entrega) : null
         const vencida = fechaLimite && fechaLimite < new Date()
         const entrega = t.mi_entrega
