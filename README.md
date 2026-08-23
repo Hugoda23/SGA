@@ -45,11 +45,23 @@ SGA/
 │       └── init.sql               # Init BD + extensiones JSONB
 │
 ├── docker-compose.yml          # Orquestación local de desarrollo
-├── docker-compose.prod.yml     # (Futuro) Producción
-├── .env                        # Variables de entorno (NO subir a Git)
-├── .env.example                # Plantilla de variables
+├── docker-compose.prod.yml     # Orquestación de producción (VPS)
+├── .env                        # Variables de entorno de docker-compose (NO subir a Git)
+├── .env.example                # Plantilla de variables de desarrollo
+├── .env.production.example     # Plantilla de variables de producción
 └── README.md
 ```
+
+---
+
+## Variables de entorno — qué archivo editar
+
+Hay dos `.env` relevantes en desarrollo y no cubren lo mismo:
+
+- **`/.env` (raíz)**: lo lee `docker-compose.yml` para sustituir `${DB_PASSWORD}`, `${APP_KEY}`, etc. Esos valores se inyectan como variables de entorno **dentro** del contenedor `backend`, y en Laravel una variable de entorno del sistema operativo tiene prioridad sobre la misma clave definida en `backend/.env`. Es decir: si quieres cambiar `DB_PASSWORD`, `APP_KEY`, `APP_DEBUG` o `APP_ENV` para todo el stack, edita este archivo.
+- **`backend/.env`**: cubre todo lo que el `docker-compose.yml` no sobrescribe (mail, sesión, colas, `CORS_ALLOWED_ORIGINS`, `SANCTUM_STATEFUL_DOMAINS`, etc.). Es el que Laravel usa como fuente principal cuando una clave no llega ya seteada por Docker.
+
+Para producción, ver `.env.production.example` y la sección **Despliegue en producción (VPS)** más abajo.
 
 ---
 

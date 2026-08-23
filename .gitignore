@@ -10,6 +10,8 @@ build/
 .env
 .env.local
 .env.*.local
+.env.production
+backend/.env.production
 
 # Archivos de sistema
 .DS_Store
