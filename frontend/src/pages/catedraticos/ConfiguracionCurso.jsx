@@ -446,12 +446,12 @@ export default function ConfiguracionCurso() {
                             </div>
                           )}
                         </div>
-                        <div className="flex shrink-0 gap-2">
-                          <button onClick={() => avanzarEstado(u)} className={`${btn.ghost} !px-3 !py-1.5`} title={`Marcar como ${SIGUIENTE_ESTADO[u.estado]?.replace('_', ' ') || 'planificado'}`}>
+                        <div className="flex w-full flex-wrap justify-end gap-2 sm:w-auto">
+                          <button onClick={() => avanzarEstado(u)} className={`${btn.ghost} !px-3 !py-1.5 whitespace-nowrap`} title={`Marcar como ${SIGUIENTE_ESTADO[u.estado]?.replace('_', ' ') || 'planificado'}`}>
                             {SIGUIENTE_ESTADO[u.estado] === 'completado' ? 'Marcar completado' : 'Avanzar estado'}
                           </button>
-                          <button onClick={() => abrirUnidadEditar(u)} className={`${btn.outline} !px-3 !py-1.5`}>Editar</button>
-                          <button onClick={() => setUnidadEliminar(u.id_unidad)} className={`${btn.outlineDanger} !px-3 !py-1.5`}>Eliminar</button>
+                          <button onClick={() => abrirUnidadEditar(u)} className={`${btn.outline} !px-3 !py-1.5 whitespace-nowrap`}>Editar</button>
+                          <button onClick={() => setUnidadEliminar(u.id_unidad)} className={`${btn.outlineDanger} !px-3 !py-1.5 whitespace-nowrap`}>Eliminar</button>
                         </div>
                       </div>
                       {vencidas > 0 && (
