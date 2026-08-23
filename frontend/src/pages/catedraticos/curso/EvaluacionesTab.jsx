@@ -3,7 +3,7 @@ import api from '../../../api/axios'
 import { btn, input, badge } from '../../../lib/twClasses'
 import Modal from '../../../components/Modal'
 
-export default function EvaluacionesTab({ idAsignacion, zonas, evaluaciones, totalPuntosZonas, reload, setAlert }) {
+export default function EvaluacionesTab({ idAsignacion, zonas, evaluaciones, tareas = [], totalPuntosZonas, reload, setAlert }) {
   const [nuevaZona, setNuevaZona] = useState({ nombre: '', puntos: '' })
   const [guardandoZona, setGuardandoZona] = useState(false)
 
@@ -168,7 +168,11 @@ export default function EvaluacionesTab({ idAsignacion, zonas, evaluaciones, tot
       ) : (
         <div className="space-y-4">
           {zonas.map((zona, idx) => {
-            const sumActividades = zona.evaluaciones.reduce((acc, ev) => acc + (parseFloat(ev.porcentaje) || 0), 0)
+            const sumEvaluaciones = zona.evaluaciones.reduce((acc, ev) => acc + (parseFloat(ev.porcentaje) || 0), 0)
+            const sumTareas = tareas
+              .filter((t) => t.id_zona === zona.id_zona)
+              .reduce((acc, t) => acc + (parseFloat(t.puntos) || 0), 0)
+            const sumActividades = sumEvaluaciones + sumTareas
             const editando = zonaEditando === zona.id_zona
             return (
               <div key={zona.id_zona} className="overflow-hidden rounded-xl bg-white shadow-4 dark:bg-surface-dark">
@@ -199,8 +203,8 @@ export default function EvaluacionesTab({ idAsignacion, zonas, evaluaciones, tot
                     )}
                   </div>
                   <div className="flex items-center gap-3">
-                    <span className={`rounded-full px-3 py-1 text-xs font-bold ${sumActividades === parseFloat(zona.puntos) ? badge.success : badge.warning}`}>
-                      {sumActividades} / {zona.puntos} pts
+                    <span className={`rounded-full px-3 py-1 text-xs font-bold ${sumActividades === parseFloat(zona.puntos) ? badge.success : badge.warning}`} title={sumTareas > 0 ? `Incluye ${sumTareas} pts de tareas vinculadas a esta zona` : undefined}>
+                      {sumActividades} / {zona.puntos} pts{sumTareas > 0 ? ` (${sumTareas} de tareas)` : ''}
                     </span>
                     {!editando && (
                       <>

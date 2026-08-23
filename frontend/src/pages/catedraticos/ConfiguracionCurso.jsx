@@ -582,6 +582,7 @@ export default function ConfiguracionCurso() {
           idAsignacion={id_asignacion}
           zonas={zonas || []}
           evaluaciones={evaluaciones || []}
+          tareas={tareas || []}
           totalPuntosZonas={total_puntos_zonas || 0}
           reload={cargarTodo}
           setAlert={setAlertMessage}

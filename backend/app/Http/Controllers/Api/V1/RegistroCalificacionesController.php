@@ -8,6 +8,7 @@ use App\Models\Catedratico;
 use App\Models\DetalleCalificacion;
 use App\Models\CalificacionFinal;
 use App\Models\Evaluacion;
+use App\Models\ZonaEvaluacion;
 use App\Services\CalificacionService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -182,11 +183,19 @@ class RegistroCalificacionesController extends Controller
         ]);
 
         if ($request->id_zona) {
-            $zona = \App\Models\ZonaEvaluacion::where('id_zona', $request->id_zona)
+            $zona = ZonaEvaluacion::where('id_zona', $request->id_zona)
                 ->where('id_asignacion', $id_asignacion)
                 ->first();
             if (!$zona) {
                 return response()->json(['errors' => ['id_zona' => ['La zona no pertenece a este curso.']]], 422);
+            }
+
+            $disponible = $zona->puntosDisponibles();
+            if ((float) ($request->porcentaje ?? 0) > $disponible) {
+                return response()->json([
+                    'message' => "La zona \"{$zona->nombre}\" solo tiene {$disponible} pts disponibles.",
+                    'errors' => ['porcentaje' => ["La zona \"{$zona->nombre}\" solo tiene {$disponible} pts disponibles."]],
+                ], 422);
             }
         }
 

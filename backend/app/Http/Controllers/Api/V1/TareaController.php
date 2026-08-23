@@ -127,7 +127,7 @@ class TareaController extends Controller
      */
     private function validarCapacidadZona($idZona, $idAsignacion, $puntosTarea, $idTareaExcluir = null)
     {
-        $zona = ZonaEvaluacion::with('evaluaciones')->find($idZona);
+        $zona = ZonaEvaluacion::find($idZona);
 
         if (!$zona || $zona->id_asignacion != $idAsignacion) {
             return response()->json(['errors' => ['id_zona' => ['La zona no pertenece a esta asignación.']]], 422);
@@ -137,12 +137,7 @@ class TareaController extends Controller
             return response()->json(['errors' => ['puntos' => ['Debes indicar los puntos de la tarea para asignarla a una zona.']]], 422);
         }
 
-        $consumidoEvaluaciones = $zona->evaluaciones->sum('porcentaje');
-        $consumidoTareas = Tarea::where('id_zona', $idZona)
-            ->when($idTareaExcluir, fn ($q) => $q->where('id_tarea', '!=', $idTareaExcluir))
-            ->sum('puntos');
-
-        $disponible = (float) $zona->puntos - (float) $consumidoEvaluaciones - (float) $consumidoTareas;
+        $disponible = $zona->puntosDisponibles(null, $idTareaExcluir);
 
         if ((float) $puntosTarea > $disponible) {
             return response()->json([

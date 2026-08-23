@@ -60,8 +60,18 @@ class ZonaEvaluacionController extends Controller
             'posicion' => 'nullable|integer|min:0',
         ]);
 
-        if (isset($validated['puntos']) && !$this->cabeEn100($zona->id_asignacion, $validated['puntos'], $id_zona)) {
-            return response()->json(['errors' => ['puntos' => ['El total de puntos de las zonas no puede exceder 100.']]], 422);
+        if (isset($validated['puntos'])) {
+            if (!$this->cabeEn100($zona->id_asignacion, $validated['puntos'], $id_zona)) {
+                return response()->json(['errors' => ['puntos' => ['El total de puntos de las zonas no puede exceder 100.']]], 422);
+            }
+
+            $consumido = $zona->puntosConsumidos();
+            if ($validated['puntos'] < $consumido) {
+                return response()->json([
+                    'message' => "No puedes reducir \"{$zona->nombre}\" a {$validated['puntos']} pts: ya tiene {$consumido} pts asignados entre sus actividades y tareas.",
+                    'errors' => ['puntos' => ["Ya hay {$consumido} pts asignados en esta zona (entre actividades y tareas). Reduce o elimina algunas primero."]],
+                ], 422);
+            }
         }
 
         $zona->update($validated);
