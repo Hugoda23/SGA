@@ -18,6 +18,9 @@
     .sga-header { display: table; width: 100%; border-bottom: 3px solid #3b71ca; padding-bottom: 10px; margin-bottom: 18px; }
     .sga-header .brand, .sga-header .doc { display: table-cell; vertical-align: middle; }
     .sga-header .doc { text-align: right; }
+    .sga-header .brand-logo, .sga-header .brand-text { display: inline-block; vertical-align: middle; }
+    .sga-header .brand-logo { width: 44px; margin-right: 10px; }
+    .sga-header .sga-logo { width: 40px; height: 40px; object-fit: contain; }
     .sga-header .sistema { font-size: 8.5px; color: #6590d5; letter-spacing: 1.5px; text-transform: uppercase; }
     .sga-header .institucion { font-size: 15px; font-weight: bold; color: #204075; text-transform: uppercase; margin-top: 1px; }
     .sga-header .titulo-doc { font-size: 13px; font-weight: bold; color: #285192; text-transform: uppercase; }

@@ -51,6 +51,29 @@ class PdfReportController extends Controller
         return Configuracion::get('nombre_institucion', config('app.name'));
     }
 
+    /**
+     * Logo institucional codificado en base64, para incrustarlo directo en
+     * el PDF (DomPDF renderiza imágenes locales de forma más confiable como
+     * data URI que como ruta de archivo). Cacheado en memoria por request:
+     * un mismo reporte nunca genera más de un PDF por llamada HTTP.
+     */
+    private static ?string $logoBase64Cache = null;
+
+    private function logoBase64(): ?string
+    {
+        if (self::$logoBase64Cache !== null) {
+            return self::$logoBase64Cache;
+        }
+
+        $path = public_path('images/logo.jpg');
+
+        if (!is_file($path)) {
+            return null;
+        }
+
+        return self::$logoBase64Cache = base64_encode(file_get_contents($path));
+    }
+
     public function downloadBoletin($id)
     {
         $alumno = Alumno::with([
@@ -104,6 +127,7 @@ class PdfReportController extends Controller
 
         $data = [
             'institucion' => $this->institucionNombre(),
+            'logoBase64' => $this->logoBase64(),
             'tituloDoc' => 'Boletín de Calificaciones',
             'docNumero' => 'Boletín No. BOL-ALU-' . $alumno->id_alumno,
             'alumno' => $alumno,
@@ -164,6 +188,7 @@ class PdfReportController extends Controller
 
         $data = [
             'institucion' => $this->institucionNombre(),
+            'logoBase64' => $this->logoBase64(),
             'tituloDoc' => 'Certificado de Historial Académico (Kárdex)',
             'docNumero' => 'Kárdex No. KDX-ALU-' . $alumno->id_alumno,
             'alumno' => $alumno,
@@ -248,6 +273,7 @@ class PdfReportController extends Controller
 
         $data = [
             'institucion' => $this->institucionNombre(),
+            'logoBase64' => $this->logoBase64(),
             'tituloDoc' => 'Acta Oficial de Calificaciones',
             'docNumero' => 'Acta No. ACT-ASG-' . $asignacion->id_asignacion,
             'asignacion' => $asignacion,
@@ -275,6 +301,7 @@ class PdfReportController extends Controller
 
         $data = [
             'institucion' => $this->institucionNombre(),
+            'logoBase64' => $this->logoBase64(),
             'tituloDoc' => 'Bitácora de Auditoría del Sistema',
             'logs' => $logs,
             'fecha' => Carbon::now()->format('d/m/Y H:i'),
@@ -350,6 +377,7 @@ class PdfReportController extends Controller
 
         $data = [
             'institucion' => $this->institucionNombre(),
+            'logoBase64' => $this->logoBase64(),
             'tituloDoc' => 'Constancia de Inscripción',
             'docNumero' => 'Constancia No. CNS-ALU-' . $alumno->id_alumno,
             'alumno' => $alumno,
@@ -388,6 +416,7 @@ class PdfReportController extends Controller
 
         $data = [
             'institucion' => $this->institucionNombre(),
+            'logoBase64' => $this->logoBase64(),
             'tituloDoc' => 'Control de Asistencia',
             'curso' => $asignacion->curso?->nombre_curso ?? '—',
             'grado' => $asignacion->grado?->nombre ?? '—',
@@ -459,6 +488,7 @@ class PdfReportController extends Controller
 
         $data = [
             'institucion' => $this->institucionNombre(),
+            'logoBase64' => $this->logoBase64(),
             'tituloDoc' => 'Lista Final de Asistencia',
             'curso' => $asignacion->curso?->nombre_curso ?? '—',
             'grado' => $asignacion->grado?->nombre ?? '—',
@@ -494,6 +524,7 @@ class PdfReportController extends Controller
 
         $data = [
             'institucion' => $this->institucionNombre(),
+            'logoBase64' => $this->logoBase64(),
             'tituloDoc' => 'Avance Programático',
             'curso' => $asignacion->curso?->nombre_curso ?? '—',
             'grado' => $asignacion->grado?->nombre ?? '—',

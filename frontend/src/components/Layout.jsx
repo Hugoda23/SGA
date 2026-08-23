@@ -3,6 +3,7 @@ import { NavLink, Link, Outlet, useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import api from '../api/axios'
 import { badge } from '../lib/twClasses'
+import logo from '../assets/logo.jpg'
 
 const navItems = [
   { label: 'Dashboard', path: '/', icon: 'M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-4 0a1 1 0 01-1-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 01-1 1', roles: ['admin'], permiso: 'dashboard.ver' },
@@ -169,9 +170,7 @@ export default function Layout() {
     <div className="flex h-screen bg-neutral-100 font-sans">
       <aside className={`${sidebarOpen ? 'translate-x-0' : '-translate-x-full'} fixed inset-y-0 left-0 z-30 flex w-64 flex-col bg-surface-dark text-white shadow-lg transition-transform duration-200 lg:static lg:translate-x-0`}>
         <div className="flex items-center gap-3.5 border-b border-neutral-600/40 p-6">
-          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-neutral-500/30 bg-neutral-800 font-mono text-sm font-bold text-neutral-200 shadow-2">
-            [L]
-          </div>
+          <img src={logo} alt="Instituto Florencio Carrascoza" className="h-10 w-10 shrink-0 rounded-lg object-contain shadow-2" />
           <div>
             <h1 className="text-xl font-bold leading-tight tracking-tight">Inst.<br />Florencio</h1>
             <p className="mt-0.5 text-[10px] font-bold uppercase tracking-widest text-neutral-400">Carrascoza</p>

@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import { btn, input } from '../lib/twClasses'
+import logo from '../assets/logo.jpg'
 
 const tipos = [
   { value: 'administrador', label: 'Administrador', desc: 'Admin / Director / Secretaría' },
@@ -43,9 +44,7 @@ export default function Login() {
     <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-primary-700 via-primary-800 to-neutral-900 p-4">
       <div className="w-full max-w-md rounded-xl border-none bg-white p-8 shadow-5 dark:bg-surface-dark">
         <div className="mb-8 text-center">
-          <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-lg bg-primary text-xl font-bold text-white shadow-primary-3">
-            IFC
-          </div>
+          <img src={logo} alt="Instituto Florencio Carrascoza" className="mx-auto mb-4 h-16 w-16 rounded-lg object-contain shadow-primary-3" />
           <h1 className="text-3xl font-bold text-neutral-800 dark:text-neutral-100">SGA</h1>
           <p className="mt-1 text-neutral-500 dark:text-neutral-400">Sistema de Gestión Académica</p>
         </div>
