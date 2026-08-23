@@ -18,6 +18,7 @@ export default function TareaList() {
   const columns = [
     { key: 'titulo', label: 'Título' },
     { key: 'asignacion', label: 'Asignación', render: (row) => row.asignacion?.curso?.nombre_curso || '-', exportValue: (row) => row.asignacion?.curso?.nombre_curso || '-' },
+    { key: 'puntos', label: 'Puntos', render: (row) => row.puntos ?? '100 (por defecto)', exportValue: (row) => row.puntos ?? 100 },
     { key: 'fecha_entrega', label: 'Fecha de Entrega', render: (row) => row.fecha_entrega ? new Date(row.fecha_entrega).toLocaleDateString('es-GT') : '-', exportValue: (row) => row.fecha_entrega ? new Date(row.fecha_entrega).toLocaleDateString('es-GT') : '-' },
     { key: 'descripcion', label: 'Descripción' },
   ]

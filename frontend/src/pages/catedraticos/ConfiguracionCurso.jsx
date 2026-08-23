@@ -55,6 +55,7 @@ export default function ConfiguracionCurso() {
 
   const [titulo, setTitulo] = useState('')
   const [descripcion, setDescripcion] = useState('')
+  const [puntos, setPuntos] = useState('')
   const [fechaEntrega, setFechaEntrega] = useState('')
   const [horaEntrega, setHoraEntrega] = useState('')
   const [idUnidadTarea, setIdUnidadTarea] = useState('')
@@ -197,6 +198,7 @@ export default function ConfiguracionCurso() {
       const payload = {
         titulo: titulo.trim(),
         descripcion: descripcion.trim() || null,
+        puntos: puntos !== '' ? parseFloat(puntos) : null,
         id_asignacion: parseInt(id_asignacion),
         id_unidad: idUnidadTarea ? parseInt(idUnidadTarea) : null,
         permitir_link: permitirLink,
@@ -208,7 +210,7 @@ export default function ConfiguracionCurso() {
       }
       await api.post('/v1/tareas', payload)
       setAlertMessage('Tarea publicada correctamente. Los alumnos recibirán una notificación.')
-      setTitulo(''); setDescripcion(''); setFechaEntrega(''); setHoraEntrega(''); setIdUnidadTarea(''); setPermitirLink(false)
+      setTitulo(''); setDescripcion(''); setPuntos(''); setFechaEntrega(''); setHoraEntrega(''); setIdUnidadTarea(''); setPermitirLink(false)
       cargarTodo()
     } catch (err) {
       setAlertMessage(err.response?.data?.message || 'Error al publicar tarea')
@@ -441,6 +443,11 @@ export default function ConfiguracionCurso() {
                 </select>
               </div>
               <div>
+                <label className={input.label}>Puntos que vale la tarea (opcional)</label>
+                <input type="number" min="0" max="1000" step="0.01" value={puntos} onChange={(e) => setPuntos(e.target.value)} placeholder="Ej. 10" className={input.base} />
+                <p className="mt-1 text-xs text-neutral-400 dark:text-neutral-500">Si no indicas puntos, la calificación de las entregas se registrará sobre 100.</p>
+              </div>
+              <div>
                 <label className={input.label}>Fecha de Entrega</label>
                 <input type="date" value={fechaEntrega} onChange={(e) => setFechaEntrega(e.target.value)} className={input.base} />
               </div>
@@ -483,7 +490,12 @@ export default function ConfiguracionCurso() {
                     <div key={t.id_tarea} className={`rounded-xl border p-3 ${vencida ? 'border-danger-100 bg-danger-50' : 'border-neutral-100 bg-neutral-50 dark:border-neutral-700 dark:bg-neutral-700/50'}`}>
                       <div className="flex items-center justify-between gap-3">
                         <div className="min-w-0 flex-1">
-                          <p className="truncate text-sm font-bold text-neutral-700 dark:text-neutral-200">{t.titulo}</p>
+                          <div className="flex items-center gap-2">
+                            <p className="truncate text-sm font-bold text-neutral-700 dark:text-neutral-200">{t.titulo}</p>
+                            {t.puntos !== null && t.puntos !== undefined && (
+                              <span className="shrink-0 rounded-full bg-primary-50 px-2 py-0.5 text-xs font-bold text-primary dark:bg-primary-900/30">{t.puntos} pts</span>
+                            )}
+                          </div>
                           <p className="mt-0.5 text-xs text-neutral-400 dark:text-neutral-500">
                             {t.fecha_entrega ? new Date(t.fecha_entrega).toLocaleString('es-GT') : 'Sin fecha límite'}
                             {vencida && <span className="ml-2 font-bold text-danger">(Vencida)</span>}

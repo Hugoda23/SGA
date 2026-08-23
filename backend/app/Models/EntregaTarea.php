@@ -2,10 +2,13 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
 class EntregaTarea extends Model
 {
+    use HasFactory;
+
     protected $table = 'entrega_tarea';
     protected $primaryKey = 'id_entrega';
     public $timestamps = false;

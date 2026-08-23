@@ -36,6 +36,7 @@ class MisTareasController extends Controller
                 'id_tarea' => $t->id_tarea,
                 'titulo' => $t->titulo,
                 'descripcion' => $t->descripcion,
+                'puntos' => $t->puntos,
                 'fecha_entrega' => $t->fecha_entrega,
                 'permitir_link' => $t->permitir_link,
                 'curso' => $t->asignacion?->curso?->nombre_curso,

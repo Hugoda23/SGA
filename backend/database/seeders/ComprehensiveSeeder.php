@@ -15,21 +15,26 @@ use App\Models\PeriodoAcademico;
 use App\Models\Catedratico;
 use App\Models\Curso;
 use App\Models\Grado;
+use App\Models\Seccion;
 use App\Models\Alumno;
 use App\Models\Pensum;
 use App\Models\Asignacion;
 use App\Models\HorarioDetalle;
 use App\Models\Inscripcion;
 use App\Models\Asistencia;
+use App\Models\Unidad;
+use App\Models\ZonaEvaluacion;
 use App\Models\Evaluacion;
 use App\Models\DetalleCalificacion;
-use App\Models\CalificacionFinal;
 use App\Models\Tarea;
 use App\Models\EntregaTarea;
+use App\Models\Material;
+use App\Models\Anuncio;
 use App\Models\Archivo;
 use App\Models\Notificacion;
 use App\Models\Bitacora;
 use App\Models\ReporteGenerado;
+use App\Services\CalificacionService;
 use Carbon\Carbon;
 
 class ComprehensiveSeeder extends Seeder
@@ -87,6 +92,23 @@ class ComprehensiveSeeder extends Seeder
                     'nombre_carrera' => $nom,
                     'descripcion' => $faker->sentence
                 ]);
+            }
+
+            // 5b. Grados y Secciones
+            $grados = [];
+            foreach ([
+                ['nombre' => 'Primero Básico', 'nivel' => 'Básico'],
+                ['nombre' => 'Segundo Básico', 'nivel' => 'Básico'],
+                ['nombre' => 'Tercero Básico', 'nivel' => 'Básico'],
+                ['nombre' => 'Cuarto Diversificado', 'nivel' => 'Diversificado'],
+                ['nombre' => 'Quinto Diversificado', 'nivel' => 'Diversificado'],
+            ] as $g) {
+                $grados[] = Grado::create($g);
+            }
+
+            $secciones = [];
+            foreach (['A', 'B', 'C'] as $nombreSeccion) {
+                $secciones[] = Seccion::create(['nombre' => $nombreSeccion]);
             }
 
             // 6. Periodo Académico
@@ -151,6 +173,7 @@ class ComprehensiveSeeder extends Seeder
                     'telefono' => $faker->numerify('########'),
                     'fecha_nacimiento' => $faker->dateTimeBetween('-25 years', '-18 years')->format('Y-m-d'),
                     'id_carrera' => $faker->randomElement($carreras)->id_carrera,
+                    'id_grado_actual' => $faker->randomElement($grados)->id_grado,
                     'estado_academico' => 'activo'
                 ]);
             }
@@ -174,6 +197,8 @@ class ComprehensiveSeeder extends Seeder
                     'id_curso' => $faker->randomElement($cursos)->id_curso,
                     'id_aula' => $faker->randomElement($aulas)->id_aula,
                     'id_periodo' => $periodos[1]->id_periodo, // Activo
+                    'id_grado' => $faker->randomElement($grados)->id_grado,
+                    'id_seccion' => $faker->randomElement($secciones)->id_seccion,
                 ]);
             }
 
@@ -212,43 +237,120 @@ class ComprehensiveSeeder extends Seeder
                 }
             }
 
-            // 15. Evaluaciones y Tareas
-            $evaluaciones = [];
+            // 15. Unidades (avance programático), Zonas de evaluación, Evaluaciones,
+            // Tareas y Materiales — todo vinculado a cada asignación.
+            $evaluacionesPorAsignacion = [];
             $tareas = [];
+            $temasPorSemana = [
+                ['titulo' => 'Introducción y fundamentos', 'temas' => "Presentación del curso\nConceptos básicos", 'competencia' => 'Identifica los conceptos fundamentales de la materia.', 'estado' => 'completado'],
+                ['titulo' => 'Desarrollo de contenidos', 'temas' => "Profundización teórica\nCasos prácticos", 'competencia' => 'Aplica los conceptos aprendidos en ejercicios prácticos.', 'estado' => 'en_progreso'],
+                ['titulo' => 'Cierre y evaluación', 'temas' => "Repaso general\nEvaluación final de unidad", 'competencia' => 'Integra y demuestra el dominio de los temas del curso.', 'estado' => 'planificado'],
+            ];
+
             foreach ($asignaciones as $asig) {
-                $evaluaciones[] = Evaluacion::create([
-                    'id_asignacion' => $asig->id_asignacion,
-                    'unidad_academica' => 1,
-                    'nombre' => 'Examen Parcial 1',
-                    'porcentaje' => 20.00
-                ]);
-
-                $tareas[] = Tarea::create([
-                    'titulo' => 'Ensayo ' . $faker->word,
-                    'descripcion' => $faker->sentence,
-                    'fecha_entrega' => Carbon::now()->addDays($faker->numberBetween(1, 10)),
-                    'id_asignacion' => $asig->id_asignacion
-                ]);
-            }
-
-            // 16. DetalleCalificacion y CalificacionFinal
-            foreach ($inscripciones as $insc) {
-                // Find evaluacion for this inscripcion's asignacion
-                $eval = collect($evaluaciones)->firstWhere('id_asignacion', $insc->id_asignacion);
-                if ($eval) {
-                    DetalleCalificacion::create([
-                        'id_evaluacion' => $eval->id_evaluacion,
-                        'id_inscripcion' => $insc->id_inscripcion,
-                        'nota' => $faker->randomFloat(2, 0, 20)
+                // Unidades del avance programático
+                $unidadesAsig = [];
+                foreach ($temasPorSemana as $semana => $def) {
+                    $unidadesAsig[] = Unidad::create([
+                        'id_asignacion' => $asig->id_asignacion,
+                        'numero_semana' => $semana + 1,
+                        'titulo' => $def['titulo'],
+                        'temas' => $def['temas'],
+                        'competencia' => $def['competencia'],
+                        'estado' => $def['estado'],
+                        'fecha_inicio' => Carbon::now()->subWeeks(3 - $semana),
+                        'fecha_fin' => Carbon::now()->subWeeks(3 - $semana)->addDays(6),
                     ]);
                 }
 
-                CalificacionFinal::create([
-                    'id_inscripcion' => $insc->id_inscripcion,
-                    'unidad_academica' => 1,
-                    'nota_final' => $faker->randomFloat(2, 50, 100),
-                    'observaciones' => 'Buen rendimiento'
+                // Zonas de evaluación (100 puntos repartidos entre las 3) con
+                // una actividad evaluable por zona.
+                $zonaDefs = [
+                    ['nombre' => 'Zona 1', 'puntos' => 30],
+                    ['nombre' => 'Zona 2', 'puntos' => 30],
+                    ['nombre' => 'Zona 3', 'puntos' => 40],
+                ];
+                $evalsAsig = [];
+                foreach ($zonaDefs as $pos => $def) {
+                    $zona = ZonaEvaluacion::create([
+                        'id_asignacion' => $asig->id_asignacion,
+                        'nombre' => $def['nombre'],
+                        'puntos' => $def['puntos'],
+                        'posicion' => $pos,
+                    ]);
+
+                    $evalsAsig[] = Evaluacion::create([
+                        'id_asignacion' => $asig->id_asignacion,
+                        'id_zona' => $zona->id_zona,
+                        'unidad_academica' => 1,
+                        'nombre' => $def['nombre'] . ' - Actividades',
+                        'porcentaje' => $def['puntos'],
+                    ]);
+                }
+                $evaluacionesPorAsignacion[$asig->id_asignacion] = $evalsAsig;
+
+                // Tarea vinculada a la primera unidad
+                $tareas[] = Tarea::create([
+                    'titulo' => 'Ensayo ' . $faker->word,
+                    'descripcion' => $faker->sentence,
+                    'puntos' => $faker->randomElement([10, 15, 20, 25]),
+                    'fecha_entrega' => Carbon::now()->addDays($faker->numberBetween(1, 10)),
+                    'id_asignacion' => $asig->id_asignacion,
+                    'id_unidad' => $unidadesAsig[0]->id_unidad,
                 ]);
+
+                // Material: un archivo descargable y un enlace externo
+                $archivo = Archivo::create([
+                    'nombre' => 'Guia_' . $asig->id_asignacion . '.pdf',
+                    'ruta' => 'materiales/guia-' . $asig->id_asignacion . '.pdf',
+                    'tipo' => 'application/pdf',
+                    'fecha_subida' => Carbon::now()->subDays($faker->numberBetween(1, 15)),
+                ]);
+                Material::create([
+                    'id_asignacion' => $asig->id_asignacion,
+                    'id_unidad' => $unidadesAsig[0]->id_unidad,
+                    'titulo' => 'Guía de estudio - Unidad 1',
+                    'descripcion' => $faker->sentence,
+                    'tipo' => 'archivo',
+                    'id_archivo' => $archivo->id_archivo,
+                    'fecha_publicacion' => Carbon::now()->subDays($faker->numberBetween(1, 15)),
+                ]);
+                Material::create([
+                    'id_asignacion' => $asig->id_asignacion,
+                    'id_unidad' => $unidadesAsig[1]->id_unidad,
+                    'titulo' => 'Video de apoyo',
+                    'descripcion' => $faker->sentence,
+                    'tipo' => 'enlace',
+                    'url' => 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
+                    'fecha_publicacion' => Carbon::now()->subDays($faker->numberBetween(1, 10)),
+                ]);
+
+                // Anuncio de bienvenida del curso
+                Anuncio::create([
+                    'id_asignacion' => $asig->id_asignacion,
+                    'titulo' => 'Bienvenida al curso',
+                    'contenido' => $faker->paragraph,
+                    'fecha_publicacion' => Carbon::now()->subDays($faker->numberBetween(1, 20)),
+                ]);
+            }
+
+            // 16. DetalleCalificacion: una nota por cada actividad de zona,
+            // y luego se recalcula la nota final con CalificacionService —
+            // el mismo servicio real que usa la app — en vez de un valor
+            // aleatorio desconectado, para que la data sembrada sea
+            // consistente end-to-end.
+            foreach ($inscripciones as $insc) {
+                foreach ($evaluacionesPorAsignacion[$insc->id_asignacion] ?? [] as $ev) {
+                    DetalleCalificacion::create([
+                        'id_evaluacion' => $ev->id_evaluacion,
+                        'id_inscripcion' => $insc->id_inscripcion,
+                        'nota' => $faker->randomFloat(2, 0, (float) $ev->porcentaje),
+                    ]);
+                }
+            }
+
+            foreach ($asignaciones as $asig) {
+                CalificacionService::recalcularNotasFinales($asig);
             }
 
             // 17. EntregaTarea y Archivos
@@ -261,7 +363,8 @@ class ComprehensiveSeeder extends Seeder
                         'id_alumno' => $alumno->id_alumno,
                         'archivo' => 'storage/tareas/archivo_' . $alumno->id_alumno . '.pdf',
                         'fecha_entrega' => Carbon::now(),
-                        'calificacion' => $faker->randomFloat(2, 5, 10)
+                        'estado' => 'entregada',
+                        'calificacion' => $faker->randomFloat(2, 0, (float) ($tarea->puntos ?? 100)),
                     ]);
 
                 }

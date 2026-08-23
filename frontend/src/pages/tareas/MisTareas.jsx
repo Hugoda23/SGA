@@ -166,7 +166,9 @@ export default function MisTareas() {
               </a>
             )}
             {entrega.calificacion !== null && (
-              <div className="mt-2 text-lg font-extrabold text-primary">{entrega.calificacion} pts</div>
+              <div className="mt-2 text-lg font-extrabold text-primary">
+                {entrega.calificacion} / {t.puntos ?? 100} pts
+              </div>
             )}
           </div>
         )
@@ -176,7 +178,10 @@ export default function MisTareas() {
             <div className="flex justify-between items-start gap-4">
               <div className="flex-1 min-w-0">
                 <div className="text-xs font-bold text-primary mb-1">{t.curso}</div>
-                <h3 className="font-bold text-neutral-800 text-lg dark:text-neutral-100">{t.titulo}</h3>
+                <div className="flex items-center gap-2">
+                  <h3 className="font-bold text-neutral-800 text-lg dark:text-neutral-100">{t.titulo}</h3>
+                  <span className="shrink-0 rounded-full bg-primary-50 px-2 py-0.5 text-xs font-bold text-primary dark:bg-primary-900/30">{t.puntos ?? 100} pts</span>
+                </div>
                 {t.descripcion && <p className="text-sm text-neutral-500 mt-1 whitespace-pre-line">{t.descripcion}</p>}
                 {fechaLimite && (
                   <p className={`text-xs mt-2 font-medium ${vencida ? 'text-danger' : 'text-neutral-400'}`}>

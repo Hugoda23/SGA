@@ -18,12 +18,14 @@ class EntregaTareaController extends Controller
 
     public function store(Request $request)
     {
+        $maxCalificacion = $this->puntosMaximos($request->input('id_tarea'));
+
         $validated = $request->validate([
             'id_tarea' => 'required|exists:tarea,id_tarea',
             'id_alumno' => 'required|exists:alumno,id_alumno',
             'archivo' => 'nullable|string|max:255',
             'link' => 'nullable|url|max:500',
-            'calificacion' => 'nullable|numeric|max:100',
+            'calificacion' => "nullable|numeric|min:0|max:{$maxCalificacion}",
         ]);
 
         $entrega = EntregaTarea::create($validated);
@@ -38,15 +40,29 @@ class EntregaTareaController extends Controller
 
     public function update(Request $request, EntregaTarea $entregaTarea)
     {
+        $maxCalificacion = $this->puntosMaximos($entregaTarea->id_tarea);
+
         $validated = $request->validate([
             'archivo' => 'nullable|string|max:255',
             'link' => 'nullable|url|max:500',
-            'calificacion' => 'nullable|numeric|max:100',
+            'calificacion' => "nullable|numeric|min:0|max:{$maxCalificacion}",
         ]);
 
         $entregaTarea->update($validated);
 
         return response()->json($entregaTarea);
+    }
+
+    /**
+     * Puntos máximos que puede valer una calificación de entrega: los
+     * puntos configurados en la tarea, o 100 si la tarea no definió puntos
+     * (compatibilidad con tareas creadas antes de este campo).
+     */
+    private function puntosMaximos($idTarea): float
+    {
+        $puntos = Tarea::find($idTarea)?->puntos;
+
+        return $puntos !== null ? (float) $puntos : 100.0;
     }
 
     public function destroy(EntregaTarea $entregaTarea)
@@ -82,7 +98,7 @@ class EntregaTareaController extends Controller
         });
 
         return response()->json([
-            'tarea' => ['id_tarea' => $tarea->id_tarea, 'titulo' => $tarea->titulo, 'fecha_entrega' => $tarea->fecha_entrega],
+            'tarea' => ['id_tarea' => $tarea->id_tarea, 'titulo' => $tarea->titulo, 'puntos' => $tarea->puntos, 'fecha_entrega' => $tarea->fecha_entrega],
             'alumnos' => $alumnos,
         ]);
     }
@@ -90,8 +106,13 @@ class EntregaTareaController extends Controller
     // Calificar entrega
     public function calificar(Request $request, $id_entrega)
     {
-        $validated = $request->validate(['calificacion' => 'required|numeric|min:0|max:100']);
         $entrega = EntregaTarea::findOrFail($id_entrega);
+        $maxCalificacion = $this->puntosMaximos($entrega->id_tarea);
+
+        $validated = $request->validate([
+            'calificacion' => "required|numeric|min:0|max:{$maxCalificacion}",
+        ]);
+
         $entrega->update(['calificacion' => $validated['calificacion']]);
         return response()->json($entrega);
     }

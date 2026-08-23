@@ -34,6 +34,7 @@ class TareaController extends Controller
         $validated = $request->validate([
             'titulo' => 'required|string|max:200',
             'descripcion' => 'nullable|string',
+            'puntos' => 'nullable|numeric|min:0|max:1000',
             'fecha_entrega' => 'nullable|string',
             'permitir_link' => 'nullable|boolean',
             'id_asignacion' => 'required|exists:asignacion,id_asignacion',
@@ -79,6 +80,7 @@ class TareaController extends Controller
         $validated = $request->validate([
             'titulo' => 'sometimes|string|max:200',
             'descripcion' => 'nullable|string',
+            'puntos' => 'nullable|numeric|min:0|max:1000',
             'fecha_entrega' => 'nullable|string',
             'permitir_link' => 'nullable|boolean',
             'id_asignacion' => 'sometimes|exists:asignacion,id_asignacion',
@@ -115,6 +117,7 @@ class TareaController extends Controller
                     'id_tarea' => $t->id_tarea,
                     'titulo' => $t->titulo,
                     'descripcion' => $t->descripcion,
+                    'puntos' => $t->puntos,
                     'fecha_entrega' => $t->fecha_entrega,
                     'permitir_link' => $t->permitir_link,
                     'id_unidad' => $t->id_unidad,

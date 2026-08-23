@@ -246,6 +246,7 @@ class AlumnoCursoController extends Controller
                             'id_tarea' => $t->id_tarea,
                             'titulo' => $t->titulo,
                             'descripcion' => $t->descripcion,
+                            'puntos' => $t->puntos,
                             'fecha_entrega' => $t->fecha_entrega,
                             'permitir_link' => $t->permitir_link,
                             'mi_entrega' => $entrega ? [
@@ -268,6 +269,7 @@ class AlumnoCursoController extends Controller
                     'id_unidad' => $t->id_unidad,
                     'titulo' => $t->titulo,
                     'descripcion' => $t->descripcion,
+                    'puntos' => $t->puntos,
                     'fecha_entrega' => $t->fecha_entrega,
                     'permitir_link' => $t->permitir_link,
                     'unidad' => $t->unidad ? [

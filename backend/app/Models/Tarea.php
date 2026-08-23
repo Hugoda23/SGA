@@ -2,10 +2,13 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
 class Tarea extends Model
 {
+    use HasFactory;
+
     protected $table = 'tarea';
     protected $primaryKey = 'id_tarea';
     public $timestamps = false;
@@ -13,6 +16,7 @@ class Tarea extends Model
     protected $fillable = [
         'titulo',
         'descripcion',
+        'puntos',
         'fecha_entrega',
         'permitir_link',
         'id_asignacion',
@@ -22,6 +26,7 @@ class Tarea extends Model
     protected $casts = [
         'fecha_entrega' => 'datetime',
         'permitir_link' => 'boolean',
+        'puntos' => 'float',
     ];
 
     public function asignacion()

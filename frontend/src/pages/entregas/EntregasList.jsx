@@ -221,6 +221,9 @@ export default function EntregasList() {
                           </div>
                           <div className="mt-1 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-neutral-500 dark:text-neutral-400">
                             {t.descripcion && <p className="max-w-md truncate">{t.descripcion}</p>}
+                            {t.puntos !== null && t.puntos !== undefined && (
+                              <span className="font-bold text-primary">{t.puntos} pts</span>
+                            )}
                             {t.fecha_entrega && (
                               <span className="flex items-center gap-1">
                                 <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
@@ -257,7 +260,7 @@ export default function EntregasList() {
                                       <th className={`${tbl.th} text-center`}>Estado</th>
                                       <th className={`${tbl.th} text-center`}>Entrega</th>
                                       <th className={`${tbl.th} text-center`}>Fecha Entrega</th>
-                                      <th className={`${tbl.th} text-center`}>Calificación</th>
+                                      <th className={`${tbl.th} text-center`}>Calificación {t.puntos !== null && t.puntos !== undefined ? `(/ ${t.puntos})` : '(/ 100)'}</th>
                                       <th className={`${tbl.th} text-center`}></th>
                                     </tr>
                                   </thead>
@@ -298,7 +301,8 @@ export default function EntregasList() {
                                               <input
                                                 type="number"
                                                 min="0"
-                                                max="100"
+                                                max={t.puntos !== null && t.puntos !== undefined ? t.puntos : 100}
+                                                step="0.01"
                                                 className="w-16 rounded-lg border border-transparent bg-neutral-100 py-1.5 text-center text-xs font-bold text-neutral-700 outline-none transition-all focus:border-primary focus:bg-white focus:ring-1 focus:ring-primary dark:bg-neutral-700/50 dark:text-neutral-200 dark:focus:bg-neutral-800"
                                                 value={califValues[a.entrega?.id_entrega] ?? ''}
                                                 onChange={(e) => setCalifValues({ ...califValues, [a.entrega.id_entrega]: e.target.value })}

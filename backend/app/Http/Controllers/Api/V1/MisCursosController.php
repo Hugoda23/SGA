@@ -142,6 +142,7 @@ class MisCursosController extends Controller
                         'id_tarea'        => $tarea->id_tarea,
                         'titulo'          => $tarea->titulo,
                         'descripcion'     => $tarea->descripcion,
+                        'puntos'          => $tarea->puntos,
                         'fecha_entrega'   => $tarea->fecha_entrega,
                         'total_entregas'  => $entregadas->count(),
                         'total_alumnos'   => $totalAlumnos,
