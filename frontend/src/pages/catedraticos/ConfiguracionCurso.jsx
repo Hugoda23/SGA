@@ -328,7 +328,7 @@ export default function ConfiguracionCurso() {
       </div>
 
       <div className={`${card} mb-8 flex flex-col items-start justify-between gap-6 md:flex-row md:items-center`}>
-        <div>
+        <div className="min-w-0">
           <div className="mb-3 inline-flex items-center gap-2 rounded-full bg-primary-50 px-3 py-1 text-xs font-bold text-primary dark:bg-primary-900/30 dark:text-primary-300">
             <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
             Configuración del Curso
@@ -339,16 +339,18 @@ export default function ConfiguracionCurso() {
           </p>
         </div>
 
-        <div className="flex rounded-xl bg-neutral-100 p-1 dark:bg-neutral-700">
-          {tabs.map((t) => (
-            <button
-              key={t.id}
-              onClick={() => setTab(t.id)}
-              className={`rounded-lg px-5 py-2.5 text-sm font-bold transition-colors ${tab === t.id ? 'bg-white text-primary shadow-sm dark:bg-neutral-800 dark:text-primary-300' : 'text-neutral-500 hover:bg-white/60 hover:text-neutral-900 dark:text-neutral-300 dark:hover:bg-neutral-800'}`}
-            >
-              {t.label}
-            </button>
-          ))}
+        <div className="w-full min-w-0 overflow-x-auto md:w-auto">
+          <div className="flex w-max gap-1 rounded-xl bg-neutral-100 p-1 dark:bg-neutral-700">
+            {tabs.map((t) => (
+              <button
+                key={t.id}
+                onClick={() => setTab(t.id)}
+                className={`shrink-0 whitespace-nowrap rounded-lg px-5 py-2.5 text-sm font-bold transition-colors ${tab === t.id ? 'bg-white text-primary shadow-sm dark:bg-neutral-800 dark:text-primary-300' : 'text-neutral-500 hover:bg-white/60 hover:text-neutral-900 dark:text-neutral-300 dark:hover:bg-neutral-800'}`}
+              >
+                {t.label}
+              </button>
+            ))}
+          </div>
         </div>
       </div>
 

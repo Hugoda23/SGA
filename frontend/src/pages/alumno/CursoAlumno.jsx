@@ -163,7 +163,7 @@ export default function CursoAlumno() {
       </div>
 
       <div className={`${card} mb-8 flex flex-col items-start justify-between gap-6 md:flex-row md:items-center`}>
-        <div>
+        <div className="min-w-0">
           <div className="mb-3 inline-flex items-center gap-2 rounded-full bg-primary-50 px-3 py-1 text-xs font-bold text-primary dark:bg-primary-900/30 dark:text-primary-300">
             <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" /></svg>
             {asignacion.codigo_curso}
@@ -174,16 +174,18 @@ export default function CursoAlumno() {
           </p>
         </div>
 
-        <div className="flex rounded-xl bg-neutral-100 p-1 dark:bg-neutral-700">
-          {tabs.map((t) => (
-            <button
-              key={t.id}
-              onClick={() => setTab(t.id)}
-              className={`rounded-lg px-4 py-2.5 text-sm font-bold transition-colors ${tab === t.id ? 'bg-white text-primary shadow-sm dark:bg-neutral-800 dark:text-primary-300' : 'text-neutral-500 hover:bg-white/60 hover:text-neutral-900 dark:text-neutral-300 dark:hover:bg-neutral-800'}`}
-            >
-              {t.label}
-            </button>
-          ))}
+        <div className="w-full min-w-0 overflow-x-auto md:w-auto">
+          <div className="flex w-max gap-1 rounded-xl bg-neutral-100 p-1 dark:bg-neutral-700">
+            {tabs.map((t) => (
+              <button
+                key={t.id}
+                onClick={() => setTab(t.id)}
+                className={`shrink-0 whitespace-nowrap rounded-lg px-4 py-2.5 text-sm font-bold transition-colors ${tab === t.id ? 'bg-white text-primary shadow-sm dark:bg-neutral-800 dark:text-primary-300' : 'text-neutral-500 hover:bg-white/60 hover:text-neutral-900 dark:text-neutral-300 dark:hover:bg-neutral-800'}`}
+              >
+                {t.label}
+              </button>
+            ))}
+          </div>
         </div>
       </div>
 
