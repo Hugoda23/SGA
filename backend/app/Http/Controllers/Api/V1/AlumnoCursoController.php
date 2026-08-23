@@ -331,6 +331,12 @@ class AlumnoCursoController extends Controller
     /**
      * POST /v1/alumno/curso/{id_asignacion}/entregar/{id_tarea}
      * Sube la entrega de una tarea validando la inscripción del alumno autenticado.
+     *
+     * Nota: la lógica de subida es casi idéntica a
+     * EntregaTareaController::subirArchivo — existen ambos endpoints porque
+     * el frontend los usa desde dos pantallas distintas (vista de un curso
+     * vs. "Mis Tareas" global). Si se toca la validación de archivos o el
+     * manejo de link/estado en uno, revisar también el otro.
      */
     public function entregarTarea(Request $request, $id_asignacion, $id_tarea)
     {
@@ -367,8 +373,8 @@ class AlumnoCursoController extends Controller
                 return response()->json(['error' => 'Esta tarea no acepta entregas por enlace'], 422);
             }
 
-            // Si reemplaza un enlace, limpiamos el archivo anterior
-            $datos = ['link' => $request->link];
+            // Si reemplaza un archivo por un enlace, limpiamos el archivo anterior
+            $datos = ['link' => $request->link, 'archivo' => null, 'nombre_original' => null];
         }
 
         $datos['estado'] = 'borrador';

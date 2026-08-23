@@ -19,11 +19,13 @@ class PermisoController extends Controller
     {
         $creados = 0;
         foreach (Permiso::defaults() as $permiso) {
-            Permiso::firstOrCreate(
+            $modelo = Permiso::firstOrCreate(
                 ['nombre' => $permiso['nombre']],
                 $permiso
             );
-            $creados++;
+            if ($modelo->wasRecentlyCreated) {
+                $creados++;
+            }
         }
 
         return response()->json([

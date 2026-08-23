@@ -210,7 +210,8 @@ class EntregaTareaController extends Controller
                 return response()->json(['error' => 'Esta tarea no acepta entregas por enlace'], 422);
             }
 
-            $datos = ['link' => $request->link];
+            // Si reemplaza un archivo por un enlace, limpiamos el archivo anterior
+            $datos = ['link' => $request->link, 'archivo' => null, 'nombre_original' => null];
         }
 
         // La entrega queda como borrador: no es visible para el docente hasta presentarla
