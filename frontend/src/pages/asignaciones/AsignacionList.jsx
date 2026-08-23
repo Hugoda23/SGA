@@ -20,8 +20,8 @@ export default function AsignacionList() {
     { key: 'catedratico', label: 'Catedrático', render: (row) => row.catedratico ? `${row.catedratico.nombre} ${row.catedratico.apellido}` : '-', exportValue: (row) => row.catedratico ? `${row.catedratico.nombre} ${row.catedratico.apellido}` : '-' },
     { key: 'aula', label: 'Aula', render: (row) => row.aula?.nombre_aula || '-', exportValue: (row) => row.aula?.nombre_aula || '-' },
     { key: 'periodo', label: 'Periodo', render: (row) => row.periodo?.nombre || '-', exportValue: (row) => row.periodo?.nombre || '-' },
-    { key: 'seccion', label: 'Sección' },
-    { key: 'grado', label: 'Grado' },
+    { key: 'seccion', label: 'Sección', render: (row) => row.seccion?.nombre || '-', exportValue: (row) => row.seccion?.nombre || '-' },
+    { key: 'grado', label: 'Grado', render: (row) => row.grado?.nombre || '-', exportValue: (row) => row.grado?.nombre || '-' },
   ]
   const handleExport = async () => {
     const r = await api.get('/v1/asignaciones', { params: { per_page: 1000, q: q || undefined } })
