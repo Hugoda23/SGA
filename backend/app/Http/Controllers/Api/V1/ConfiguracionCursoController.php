@@ -4,12 +4,14 @@ namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
 use App\Models\Asignacion;
-use App\Models\Catedratico;
 use App\Models\Unidad;
+use App\Traits\VerificaPropietarioCurso;
 use Illuminate\Http\Request;
 
 class ConfiguracionCursoController extends Controller
 {
+    use VerificaPropietarioCurso;
+
     /**
      * GET /v1/catedratico/configuracion-curso/{id_asignacion}
      * Datos consolidados del curso para la configuración del docente:
@@ -17,9 +19,6 @@ class ConfiguracionCursoController extends Controller
      */
     public function show(Request $request, $id_asignacion)
     {
-        $usuario = $request->user();
-        $catedratico = Catedratico::where('id_usuario', $usuario->id_usuario)->first();
-
         $asignacion = Asignacion::with([
             'curso',
             'grado',
@@ -34,9 +33,7 @@ class ConfiguracionCursoController extends Controller
             'anuncios',
         ])->findOrFail($id_asignacion);
 
-        if ($catedratico && $asignacion->id_catedratico !== $catedratico->id_catedratico) {
-            return response()->json(['error' => 'No autorizado para este curso'], 403);
-        }
+        $this->verificarCatedratico($request, $id_asignacion);
 
         $unidades = Unidad::where('id_asignacion', $id_asignacion)
             ->with('tareas.entregas')

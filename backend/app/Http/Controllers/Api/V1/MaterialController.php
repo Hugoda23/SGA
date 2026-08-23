@@ -6,13 +6,15 @@ use App\Http\Controllers\Controller;
 use App\Models\Material;
 use App\Models\Archivo;
 use App\Models\Asignacion;
-use App\Models\Catedratico;
 use App\Services\NotificacionService;
+use App\Traits\VerificaPropietarioCurso;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 
 class MaterialController extends Controller
 {
+    use VerificaPropietarioCurso;
+
     public function porAsignacion(Request $request, $id_asignacion)
     {
         $this->verificarCatedratico($request, $id_asignacion);
@@ -146,16 +148,4 @@ class MaterialController extends Controller
         ];
     }
 
-    private function verificarCatedratico(Request $request, $id_asignacion)
-    {
-        $usuario = $request->user();
-        $catedratico = Catedratico::where('id_usuario', $usuario->id_usuario)->first();
-
-        if ($catedratico) {
-            $asignacion = Asignacion::find($id_asignacion);
-            if (!$asignacion || $asignacion->id_catedratico !== $catedratico->id_catedratico) {
-                return response()->json(['error' => 'No autorizado para este curso'], 403)->throwResponse();
-            }
-        }
-    }
 }

@@ -4,17 +4,19 @@ namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
 use App\Models\Asignacion;
-use App\Models\Catedratico;
 use App\Models\DetalleCalificacion;
 use App\Models\CalificacionFinal;
 use App\Models\Evaluacion;
 use App\Models\ZonaEvaluacion;
 use App\Services\CalificacionService;
+use App\Traits\VerificaPropietarioCurso;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
 class RegistroCalificacionesController extends Controller
 {
+    use VerificaPropietarioCurso;
+
     /**
      * GET /v1/registro-calificaciones/{id_asignacion}
      * Devuelve el cuadro completo: evaluaciones + alumnos inscritos + sus notas.
@@ -33,12 +35,7 @@ class RegistroCalificacionesController extends Controller
             'inscripciones.calificacionesFinales',
         ])->findOrFail($id_asignacion);
 
-        // Verificar que el catedrático autenticado sea el dueño
-        $usuario = $request->user();
-        $catedratico = Catedratico::where('id_usuario', $usuario->id_usuario)->first();
-        if ($catedratico && $asignacion->id_catedratico !== $catedratico->id_catedratico) {
-            return response()->json(['error' => 'No autorizado para este curso'], 403);
-        }
+        $this->verificarCatedratico($request, $id_asignacion);
 
         // Evaluaciones (columnas del cuadro)
         $evaluaciones = $asignacion->evaluaciones->map(fn($ev) => [
@@ -128,6 +125,8 @@ class RegistroCalificacionesController extends Controller
     {
         $asignacion = Asignacion::with('periodo')->findOrFail($id_asignacion);
 
+        $this->verificarCatedratico($request, $id_asignacion);
+
         $bloqueado = $this->verificarPeriodoCerrado($asignacion);
         if ($bloqueado) {
             return $bloqueado;
@@ -169,6 +168,8 @@ class RegistroCalificacionesController extends Controller
     public function crearEvaluacion(Request $request, $id_asignacion)
     {
         $asignacion = Asignacion::with('periodo')->findOrFail($id_asignacion);
+
+        $this->verificarCatedratico($request, $id_asignacion);
 
         $bloqueado = $this->verificarPeriodoCerrado($asignacion);
         if ($bloqueado) {
@@ -216,12 +217,14 @@ class RegistroCalificacionesController extends Controller
      * DELETE /v1/registro-calificaciones/evaluaciones/{id_evaluacion}
      * Elimina una columna de evaluación y sus detalles.
      */
-    public function eliminarEvaluacion($id_evaluacion)
+    public function eliminarEvaluacion(Request $request, $id_evaluacion)
     {
         $evaluacion = Evaluacion::findOrFail($id_evaluacion);
         $id_asignacion = $evaluacion->id_asignacion;
 
         $asignacion = Asignacion::with('periodo')->findOrFail($id_asignacion);
+
+        $this->verificarCatedratico($request, $id_asignacion);
 
         $bloqueado = $this->verificarPeriodoCerrado($asignacion);
         if ($bloqueado) {

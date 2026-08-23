@@ -5,11 +5,13 @@ namespace App\Http\Controllers\Api\V1;
 use App\Http\Controllers\Controller;
 use App\Models\Unidad;
 use App\Models\Asignacion;
-use App\Models\Catedratico;
+use App\Traits\VerificaPropietarioCurso;
 use Illuminate\Http\Request;
 
 class UnidadController extends Controller
 {
+    use VerificaPropietarioCurso;
+
     public function porAsignacion(Request $request, $id_asignacion)
     {
         $this->verificarCatedratico($request, $id_asignacion);
@@ -102,20 +104,4 @@ class UnidadController extends Controller
         ];
     }
 
-    /**
-     * Verifica que el catedrático autenticado sea dueño de la asignación.
-     * Si el usuario no tiene perfil de catedrático (ej. admin) se permite el acceso.
-     */
-    private function verificarCatedratico(Request $request, $id_asignacion)
-    {
-        $usuario = $request->user();
-        $catedratico = Catedratico::where('id_usuario', $usuario->id_usuario)->first();
-
-        if ($catedratico) {
-            $asignacion = Asignacion::find($id_asignacion);
-            if (!$asignacion || $asignacion->id_catedratico !== $catedratico->id_catedratico) {
-                return response()->json(['error' => 'No autorizado para este curso'], 403)->throwResponse();
-            }
-        }
-    }
 }
