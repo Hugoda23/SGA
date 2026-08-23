@@ -52,6 +52,7 @@ Route::prefix('v1')->group(function () {
     Route::middleware(['auth:sanctum', 'throttle:api'])->group(function () {
         Route::get('dashboard/stats', [DashboardController::class, 'stats']);
         Route::get('catedratico/mis-cursos', [MisCursosController::class, 'index']);
+        Route::get('catedratico/horario', [MisCursosController::class, 'horario']);
         Route::get('catedratico/tareas-por-curso', [MisCursosController::class, 'tareasPorCurso']);
 
         // Registro de Calificaciones

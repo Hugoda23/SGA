@@ -72,6 +72,41 @@ class MisCursosController extends Controller
     }
 
     /**
+     * GET /v1/catedratico/horario
+     * Horario semanal del catedrático autenticado: clases de todas sus asignaciones.
+     */
+    public function horario(Request $request)
+    {
+        $usuario = $request->user();
+
+        $catedratico = Catedratico::where('id_usuario', $usuario->id_usuario)->first();
+
+        if (!$catedratico) {
+            return response()->json([], 200);
+        }
+
+        $asignaciones = Asignacion::with(['curso', 'aula', 'grado', 'seccion', 'periodo', 'horarios'])
+            ->where('id_catedratico', $catedratico->id_catedratico)
+            ->get();
+
+        $clases = $asignaciones->flatMap(function ($asignacion) {
+            return $asignacion->horarios->map(fn ($h) => [
+                'dia_semana' => $h->dia_semana,
+                'hora_inicio' => substr((string) $h->hora_inicio, 0, 5),
+                'hora_fin' => substr((string) $h->hora_fin, 0, 5),
+                'curso' => $asignacion->curso?->nombre_curso ?? 'Asignación académica',
+                'codigo_curso' => $asignacion->curso?->codigo ?? '-',
+                'aula' => $asignacion->aula?->nombre_aula ?? '-',
+                'grado' => $asignacion->grado?->nombre ?? '-',
+                'seccion' => $asignacion->seccion?->nombre ?? '-',
+                'periodo' => $asignacion->periodo?->nombre ?? '-',
+            ]);
+        })->values();
+
+        return response()->json($clases);
+    }
+
+    /**
      * Retorna las asignaciones del catedrático autenticado junto con
      * todas sus tareas asignadas y las estadísticas de entrega.
      */

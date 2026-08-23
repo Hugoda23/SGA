@@ -16,15 +16,17 @@ export default function MiHorario() {
   const [loading, setLoading] = useState(true)
 
   const isAlumno = user?.roles?.some((r) => r.nombre === 'alumno')
+  const isCatedratico = user?.roles?.some((r) => r.nombre === 'catedratico')
+  const endpoint = isAlumno ? '/v1/alumno/horario' : isCatedratico ? '/v1/catedratico/horario' : null
 
   const fetchHorario = useCallback(() => {
-    if (!isAlumno) { setLoading(false); return }
+    if (!endpoint) { setLoading(false); return }
     setLoading(true)
-    api.get('/v1/alumno/horario')
+    api.get(endpoint)
       .then((r) => setClases(r.data))
       .catch(console.error)
       .finally(() => setLoading(false))
-  }, [isAlumno])
+  }, [endpoint])
 
   useEffect(() => { fetchHorario() }, [fetchHorario])
 
@@ -35,12 +37,12 @@ export default function MiHorario() {
 
   const colorDe = (dia, idx) => COLORES[(DIAS.indexOf(dia) + idx) % COLORES.length]
 
-  if (!isAlumno) {
+  if (!endpoint) {
     return (
       <div className="mx-auto max-w-5xl pb-12">
         <h1 className="mb-6 text-3xl font-bold text-neutral-800 dark:text-neutral-100">Mi Horario</h1>
         <div className="rounded-xl border border-warning-200 bg-warning-50 p-6 text-sm font-medium text-warning dark:bg-warning-900/30 dark:text-warning-300">
-          Esta sección es solo para alumnos.
+          Esta sección es solo para alumnos y catedráticos.
         </div>
       </div>
     )
@@ -50,7 +52,7 @@ export default function MiHorario() {
     <div className="mx-auto max-w-6xl pb-12">
       <h1 className="text-3xl font-bold text-neutral-800 dark:text-neutral-100">Mi Horario</h1>
       <p className="mb-8 font-medium text-neutral-500 dark:text-neutral-400">
-        Horario de clases de tus cursos activos.
+        {isAlumno ? 'Horario de clases de tus cursos activos.' : 'Horario semanal de tus asignaciones.'}
       </p>
 
       {loading && (

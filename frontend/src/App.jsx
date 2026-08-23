@@ -175,7 +175,7 @@ export default function App() {
             </RouteGuard>
           } />
           <Route path="mi-horario" element={
-            <RouteGuard roles={['alumno']}>
+            <RouteGuard roles={['alumno', 'catedratico']}>
               <MiHorario />
             </RouteGuard>
           } />
