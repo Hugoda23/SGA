@@ -298,4 +298,85 @@ Route::prefix('v1')->group(function () {
 
 ---
 
+## Despliegue en producción (VPS)
+
+Esta sección describe cómo desplegar SGA en un VPS (por ejemplo, Hostinger) usando
+`docker-compose.prod.yml`. A diferencia del entorno de desarrollo, en producción:
+
+- El backend corre desde una imagen con el código ya compilado (`docker/php/Dockerfile.prod`),
+  no desde un bind-mount.
+- El frontend se compila una sola vez a estáticos (`frontend/Dockerfile.prod`) y Nginx los
+  sirve directamente — no hay servidor de desarrollo de Vite en producción.
+- Solo Nginx expone puertos a Internet (80/443); la base de datos y el backend solo son
+  alcanzables dentro de la red interna de Docker.
+- `APP_DEBUG=false`, `APP_ENV=production`, y todas las variables sensibles vienen de
+  `.env.production` (basado en `.env.production.example`, **nunca** se commitea el real).
+
+### Prerrequisitos en el VPS
+
+- Docker Engine y Docker Compose instalados.
+- Un dominio apuntando (registro A) a la IP del VPS.
+- Puertos 80 y 443 abiertos en el firewall (`ufw allow 80,443,22/tcp`; bloquear todo lo demás,
+  en particular no exponer el puerto de PostgreSQL ni el de PHP-FPM).
+
+### Pasos
+
+```bash
+# 1. Clonar el repositorio en el VPS
+git clone https://github.com/Hugoda23/SGA.git
+cd SGA
+
+# 2. Configurar variables de producción
+cp .env.production.example .env.production
+# Editar .env.production: dominio real, contraseña de BD fuerte, etc.
+
+# 3. Generar APP_KEY (una sola vez) y pegarlo en .env.production como APP_KEY=base64:...
+docker run --rm -v "$PWD/backend":/app -w /app composer:2.7 sh -c \
+  "php -r \"echo 'base64:'.base64_encode(random_bytes(32)).PHP_EOL;\""
+
+# 4. Reemplazar "tudominio.com" por el dominio real en docker/nginx/prod.conf
+
+# 5. Compilar el frontend (deja los estáticos en el volumen frontend_dist)
+docker compose -f docker-compose.prod.yml --env-file .env.production \
+  --profile build run --rm frontend-build
+
+# 6. Levantar base de datos, backend (corre migraciones automáticamente) y Nginx
+docker compose -f docker-compose.prod.yml --env-file .env.production up -d db backend webserver
+
+# 7. Emitir el certificado SSL (Let's Encrypt, método webroot) — solo la primera vez
+docker compose -f docker-compose.prod.yml --env-file .env.production run --rm \
+  --entrypoint certbot certbot certonly --webroot -w /var/www/certbot \
+  -d tudominio.com --email tu-correo@ejemplo.com --agree-tos --no-eff-email
+
+# 8. Reiniciar Nginx para que cargue el certificado recién emitido
+docker compose -f docker-compose.prod.yml --env-file .env.production restart webserver
+
+# 9. Dejar la renovación automática del certificado corriendo en segundo plano
+docker compose -f docker-compose.prod.yml --env-file .env.production --profile certbot up -d certbot
+```
+
+### Mantenimiento
+
+```bash
+# Backup de la base de datos
+docker exec -t sga_db_prod pg_dump -U sga_user -d sga_db -c > "backup_$(date +%F).sql"
+
+# Ver logs
+docker compose -f docker-compose.prod.yml logs backend --tail=100
+docker compose -f docker-compose.prod.yml logs webserver --tail=100
+
+# Desplegar una actualización de código
+git pull
+docker compose -f docker-compose.prod.yml --env-file .env.production build backend
+docker compose -f docker-compose.prod.yml --env-file .env.production --profile build run --rm frontend-build
+docker compose -f docker-compose.prod.yml --env-file .env.production up -d backend webserver
+```
+
+**Nota:** `EnviarNotificacionJob` y `EnviarNotificacionMultipleJob` (`backend/app/Jobs/`) existen
+en el código pero hoy no se despachan desde ningún lado. Si en el futuro se activan, agregar un
+servicio adicional en `docker-compose.prod.yml` corriendo `php artisan queue:work` (misma imagen
+del backend, comando distinto) — sin eso, los jobs despachados se acumularían sin procesarse.
+
+---
+
 *Generado para el SGA — Arquitectura Headless | Stack: Laravel + React + PostgreSQL + Docker*

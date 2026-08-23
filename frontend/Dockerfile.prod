@@ -1,0 +1,24 @@
+# ============================================================
+# Build de producción del frontend: compila el SPA a estáticos.
+# El resultado (dist/) se sirve directamente con el Nginx del
+# stack (ver docker/nginx/prod.conf) — este contenedor no corre
+# en producción, solo produce el artefacto.
+# ============================================================
+FROM node:20-alpine AS build
+
+WORKDIR /app
+
+COPY package.json package-lock.json ./
+RUN npm ci
+
+COPY . .
+
+ARG VITE_API_URL
+ENV VITE_API_URL=${VITE_API_URL}
+
+RUN npm run build
+
+# Etapa final: solo el contenido de dist/, para copiarlo con
+# `docker cp` o montarlo como volumen hacia el contenedor de Nginx.
+FROM scratch AS artifact
+COPY --from=build /app/dist /dist

@@ -1,0 +1,34 @@
+# ============================================================
+# Imagen de producción del backend (Laravel API).
+# A diferencia de docker/php/Dockerfile (dev, código montado por
+# volumen), esta imagen copia el código y las dependencias quedan
+# instaladas dentro de la imagen — no depende de un bind-mount.
+# ============================================================
+FROM php:8.4-fpm AS base
+
+RUN apt-get update && apt-get install -y \
+    git curl libpng-dev libonig-dev libxml2-dev libpq-dev libicu-dev zip unzip \
+    && apt-get clean && rm -rf /var/lib/apt/lists/*
+
+RUN docker-php-ext-install pdo pdo_pgsql pgsql mbstring exif pcntl bcmath gd intl
+
+COPY --from=composer:2.7 /usr/bin/composer /usr/bin/composer
+
+RUN groupadd -g 1000 www && useradd -u 1000 -ms /bin/bash -g www www
+
+WORKDIR /var/www/html
+
+COPY . .
+
+RUN composer install --no-dev --optimize-autoloader --no-interaction --no-progress \
+    && chown -R www:www /var/www/html \
+    && chmod -R 775 storage bootstrap/cache
+
+USER www
+
+# config/route/view cache se generan en el entrypoint (docker-compose.prod.yml),
+# después de que el contenedor ya tiene las variables de entorno reales
+# (APP_KEY, DB_*, etc.) — cachearlas en build time las dejaría vacías.
+
+EXPOSE 9000
+CMD ["php-fpm"]
