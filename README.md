@@ -229,8 +229,13 @@ docker compose exec backend php artisan migrate
 docker compose exec backend php artisan make:model Estudiante -mcr
 docker compose exec backend php artisan route:list
 
-# Tests (usan una BD dedicada "sga_test", nunca sga_db — ver backend/phpunit.xml)
-docker compose exec backend php artisan test
+# Tests (usan una BD dedicada "sga_test", nunca sga_db)
+# IMPORTANTE: siempre con `composer test`, NUNCA `php artisan test` directo
+# — ver el comentario en backend/scripts/test.sh y backend/phpunit.xml
+# para el porqué (docker-compose.yml ya define DB_DATABASE como variable
+# de entorno del contenedor, y eso gana sobre el <env force="true"> de
+# PHPUnit si no se exporta ANTES de arrancar PHP).
+docker compose exec backend composer test
 
 # Si el contenedor de BD ya existía antes de agregar sga_test a init.sql,
 # crearla una sola vez con:

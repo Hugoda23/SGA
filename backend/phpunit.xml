@@ -24,11 +24,21 @@
         <env name="BROADCAST_CONNECTION" value="null"/>
         <env name="CACHE_STORE" value="array"/>
         <!--
-            force="true" es necesario: docker-compose.yml ya define DB_CONNECTION
-            y DB_DATABASE como variables de entorno del contenedor "backend", y
-            PHPUnit no sobreescribe una env var ya presente salvo que se fuerce.
-            Sin esto, los tests correrían silenciosamente contra sga_db (la BD
-            real de desarrollo) y RefreshDatabase la vaciaría en cada test.
+            IMPORTANTE — force="true" aquí NO es suficiente por sí solo:
+            docker-compose.yml define DB_CONNECTION/DB_DATABASE como variables
+            de entorno REALES del contenedor "backend", que ya pueblan
+            $_SERVER/$_ENV cuando PHP arranca. Laravel (vía phpdotenv)
+            prioriza $_SERVER/$_ENV sobre el putenv() que aplica este
+            force="true", así que estos <env> NO alcanzan a sobreescribir esa
+            variable ya presente — sin más, los tests correrían silenciosamente
+            contra sga_db (la BD real) y RefreshDatabase la vaciaría en cada test.
+
+            La forma confiable de forzar la BD de test es exportar estas
+            variables ANTES de que el proceso de PHP arranque — eso es lo que
+            hace backend/scripts/test.sh. SIEMPRE correr los tests con
+            `composer test` (que invoca ese script), nunca `php artisan test`
+            directamente en este proyecto. Estos <env> quedan como respaldo
+            para el caso de correr phpunit fuera de este contenedor Docker.
         -->
         <env name="DB_CONNECTION" value="pgsql" force="true"/>
         <env name="DB_HOST" value="db" force="true"/>
