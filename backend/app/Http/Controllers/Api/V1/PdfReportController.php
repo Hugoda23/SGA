@@ -180,6 +180,14 @@ class PdfReportController extends Controller
         $notaMinima = (int) Configuracion::get('nota_minima', 61);
         $formatter = new \NumberFormatter('es', \NumberFormatter::SPELLOUT);
 
+        // Zonas ordenadas (ya vienen por posicion/id_zona desde el modelo) —
+        // son la estructura real de evaluación de este curso. Si el curso no
+        // tiene zonas definidas, se documenta explícitamente en el PDF en
+        // vez de inventar una columna "Zona"/"Examen" que no corresponde a
+        // ninguna estructura real.
+        $zonas = $asignacion->zonas;
+        $usaZonas = $zonas->isNotEmpty();
+
         $alumnos = [];
         $aprobados = 0;
         $reprobados = 0;
@@ -190,33 +198,17 @@ class PdfReportController extends Controller
 
             $detalles = $inscripcion->detalleCalificaciones;
 
-            // Zona: suma de las actividades de las zonas (con tope por zona).
-            // Si no hay zonas, suma directa de todas las evaluaciones.
-            $zona = 0.0;
-            if ($asignacion->zonas->isNotEmpty()) {
-                foreach ($asignacion->zonas as $zonaObj) {
-                    $obtenido = 0.0;
-                    foreach ($zonaObj->evaluaciones as $ev) {
-                        $detalle = $detalles->firstWhere('id_evaluacion', $ev->id_evaluacion);
-                        $obtenido += (float) ($detalle?->nota ?? 0);
-                    }
-                    $zona += min($obtenido, (float) $zonaObj->puntos);
-                }
-            } else {
-                foreach ($asignacion->evaluaciones as $ev) {
+            // Puntos obtenidos por zona (con el mismo tope por zona que usa
+            // CalificacionService), para mostrar el desglose real de la nota
+            // final — no un agregado aparte que pueda desalinearse de ella.
+            $porZona = [];
+            foreach ($zonas as $zonaObj) {
+                $obtenido = 0.0;
+                foreach ($zonaObj->evaluaciones as $ev) {
                     $detalle = $detalles->firstWhere('id_evaluacion', $ev->id_evaluacion);
-                    $zona += (float) ($detalle?->nota ?? 0);
+                    $obtenido += (float) ($detalle?->nota ?? 0);
                 }
-            }
-
-            // Examen final: primera evaluación cuyo nombre contenga "examen".
-            $examen = null;
-            foreach ($asignacion->evaluaciones as $ev) {
-                if (stripos($ev->nombre ?? '', 'examen') !== false) {
-                    $detalle = $detalles->firstWhere('id_evaluacion', $ev->id_evaluacion);
-                    $examen = $detalle?->nota;
-                    break;
-                }
+                $porZona[$zonaObj->id_zona] = min($obtenido, (float) $zonaObj->puntos);
             }
 
             $resultado = $nota === null ? 'Sin nota' : ($nota >= $notaMinima ? 'Aprobado' : 'Reprobado');
@@ -230,8 +222,7 @@ class PdfReportController extends Controller
                 'no' => $index + 1,
                 'carnet' => $inscripcion->alumno?->codigo_mineduc ?? ('MAT-' . ($inscripcion->alumno?->id_alumno ?? '—')),
                 'nombre' => $inscripcion->alumno ? trim($inscripcion->alumno->nombre . ' ' . $inscripcion->alumno->apellido) : '—',
-                'zona' => $nota === null ? '—' : number_format($zona, 2),
-                'examen' => ($examen === null || $nota === null) ? '—' : number_format((float) $examen, 2),
+                'por_zona' => $porZona,
                 'total' => $nota,
                 'letras' => $nota === null ? '—' : ucfirst($formatter->format(round($nota, 2))),
                 'resultado' => $resultado,
@@ -241,6 +232,8 @@ class PdfReportController extends Controller
         $data = [
             'asignacion' => $asignacion,
             'fecha' => Carbon::now()->format('d/m/Y H:i'),
+            'zonas' => $zonas,
+            'usaZonas' => $usaZonas,
             'alumnos' => $alumnos,
             'stats' => [
                 'asignados' => $asignacion->inscripciones->count(),
@@ -466,7 +459,9 @@ class PdfReportController extends Controller
                 'temas' => $u->temas,
                 'competencia' => $u->competencia,
                 'estado' => $u->estado,
-                'tareas' => $u->tareas->pluck('titulo')->filter()->values(),
+                'tareas' => $u->tareas->map(function ($t) {
+                    return $t->puntos !== null ? "{$t->titulo} ({$t->puntos} pts)" : $t->titulo;
+                })->filter()->values(),
             ];
         });
 

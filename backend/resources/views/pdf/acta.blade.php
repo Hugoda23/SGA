@@ -15,7 +15,9 @@
         table.data { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
         table.data th, table.data td { border: 1px solid #000; padding: 5px; text-align: center; }
         table.data th { background-color: #ddd; font-weight: bold; }
-        table.data td.text-left { text-align: left; }
+        table.data td.text-left, table.data th.text-left { text-align: left; }
+        table.data th .th-sub { font-weight: normal; font-size: 9px; }
+        .nota-sin-zonas { font-size: 10px; color: #555; margin-top: -14px; margin-bottom: 18px; font-style: italic; }
         .bottom-section { display: table; width: 100%; margin-top: 40px; }
         .stats, .signatures { display: table-cell; vertical-align: top; width: 50%; }
         .stats table { border-collapse: collapse; width: 200px; }
@@ -43,14 +45,17 @@
     <table class="data">
         <thead>
             <tr>
-                <th width="30">No.</th>
-                <th width="80">Carnet</th>
+                <th width="25">No.</th>
+                <th width="65">Carnet</th>
                 <th class="text-left">Nombres y Apellidos</th>
-                <th width="50">Zona</th>
-                <th width="70">Examen Final</th>
-                <th width="60">Nota Total</th>
-                <th class="text-left">En Letras</th>
-                <th width="80">Resultado</th>
+                @if($usaZonas)
+                    @foreach($zonas as $zona)
+                        <th width="60">{{ $zona->nombre }}<br><span class="th-sub">({{ number_format($zona->puntos, 0) }} pts)</span></th>
+                    @endforeach
+                @endif
+                <th width="55">Nota Final</th>
+                <th class="text-left" width="140">En Letras</th>
+                <th width="75">Resultado</th>
             </tr>
         </thead>
         <tbody>
@@ -59,15 +64,21 @@
                 <td>{{ $alumno['no'] }}</td>
                 <td>{{ $alumno['carnet'] }}</td>
                 <td class="text-left">{{ $alumno['nombre'] }}</td>
-                <td>{{ $alumno['zona'] }}</td>
-                <td>{{ $alumno['examen'] }}</td>
-                <td><strong>{{ $alumno['total'] }}</strong></td>
+                @if($usaZonas)
+                    @foreach($zonas as $zona)
+                        <td>{{ $alumno['total'] === null ? '—' : number_format($alumno['por_zona'][$zona->id_zona] ?? 0, 2) }}</td>
+                    @endforeach
+                @endif
+                <td><strong>{{ $alumno['total'] === null ? '—' : number_format($alumno['total'], 2) }}</strong></td>
                 <td class="text-left">{{ $alumno['letras'] }}</td>
                 <td>{{ $alumno['resultado'] }}</td>
             </tr>
             @endforeach
         </tbody>
     </table>
+    @if(!$usaZonas)
+        <p class="nota-sin-zonas">* Este curso no tiene zonas de evaluación definidas — la nota final se calcula por promedio ponderado directo de las actividades registradas.</p>
+    @endif
 
     <div class="bottom-section">
         <div class="stats">

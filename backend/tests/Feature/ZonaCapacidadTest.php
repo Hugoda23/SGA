@@ -3,8 +3,11 @@
 namespace Tests\Feature;
 
 use App\Models\Asignacion;
+use App\Models\CalificacionFinal;
 use App\Models\Catedratico;
+use App\Models\DetalleCalificacion;
 use App\Models\Evaluacion;
+use App\Models\Inscripcion;
 use App\Models\Permiso;
 use App\Models\Rol;
 use App\Models\Tarea;
@@ -90,5 +93,42 @@ class ZonaCapacidadTest extends TestCase
         ]);
 
         $response->assertStatus(422);
+    }
+
+    public function test_crear_una_zona_recalcula_la_nota_final(): void
+    {
+        $catedratico = $this->actuarComoCatedratico(['evaluaciones']);
+
+        $asignacion = Asignacion::factory()->create(['id_catedratico' => $catedratico->id_catedratico]);
+        $inscripcion = Inscripcion::factory()->create(['id_asignacion' => $asignacion->id_asignacion]);
+
+        // Modo legado (sin zonas): una evaluación sin id_zona aporta directo a la nota final.
+        $evaluacionLegado = Evaluacion::factory()->create([
+            'id_asignacion' => $asignacion->id_asignacion,
+            'id_zona' => null,
+            'porcentaje' => 100,
+        ]);
+        DetalleCalificacion::factory()->create([
+            'id_evaluacion' => $evaluacionLegado->id_evaluacion,
+            'id_inscripcion' => $inscripcion->id_inscripcion,
+            'nota' => 80,
+        ]);
+        CalificacionFinal::factory()->create([
+            'id_inscripcion' => $inscripcion->id_inscripcion,
+            'nota_final' => 80,
+        ]);
+
+        // Bug reportado: crear la primera zona del curso volvía autoritativa
+        // la estructura por zonas (la evaluación sin zona deja de contar),
+        // pero ZonaEvaluacionController::store() no recalculaba — nota_final
+        // se quedaba con el valor legado (80) en vez de reflejar el cambio.
+        $response = $this->postJson('/api/v1/zonas', [
+            'id_asignacion' => $asignacion->id_asignacion,
+            'nombre' => 'Zona 1',
+            'puntos' => 30,
+        ]);
+
+        $response->assertStatus(201);
+        $this->assertEquals(0, (float) $inscripcion->calificacionesFinales()->first()->nota_final);
     }
 }

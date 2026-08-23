@@ -46,6 +46,13 @@ class ZonaEvaluacionController extends Controller
             'posicion' => $validated['posicion'] ?? 0,
         ]);
 
+        // A diferencia de update()/destroy(), crear una zona nueva también
+        // puede volver desactualizada la nota_final ya calculada (p. ej. si
+        // antes no había zonas y el curso usaba el modo legado por
+        // porcentaje) — se recalcula igual que en el resto de operaciones
+        // sobre la estructura de evaluación.
+        CalificacionService::recalcularNotasFinales(Asignacion::find($zona->id_asignacion));
+
         return response()->json($this->serializar($zona->load('evaluaciones')), 201);
     }
 
