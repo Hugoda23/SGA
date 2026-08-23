@@ -40,6 +40,17 @@ class PdfReportController extends Controller
         return rtrim(strtr($payload . '.' . $sig, '+/', '-_'), '=');
     }
 
+    /**
+     * Nombre de la institución configurado en el sistema (Configuración >
+     * nombre_institucion), con el nombre de la app como respaldo. Se usa
+     * en el encabezado de todos los reportes PDF para que muestren
+     * siempre la misma identidad institucional.
+     */
+    private function institucionNombre(): string
+    {
+        return Configuracion::get('nombre_institucion', config('app.name'));
+    }
+
     public function downloadBoletin($id)
     {
         $alumno = Alumno::with([
@@ -92,6 +103,9 @@ class PdfReportController extends Controller
         }
 
         $data = [
+            'institucion' => $this->institucionNombre(),
+            'tituloDoc' => 'Boletín de Calificaciones',
+            'docNumero' => 'Boletín No. BOL-ALU-' . $alumno->id_alumno,
             'alumno' => $alumno,
             'fecha' => Carbon::now()->format('d/m/Y H:i'),
             'qrCode' => $qrCode,
@@ -149,6 +163,9 @@ class PdfReportController extends Controller
         $hash = hash('sha256', $alumno->id_alumno . Carbon::now()->toDateString() . $promedio_global);
 
         $data = [
+            'institucion' => $this->institucionNombre(),
+            'tituloDoc' => 'Certificado de Historial Académico (Kárdex)',
+            'docNumero' => 'Kárdex No. KDX-ALU-' . $alumno->id_alumno,
             'alumno' => $alumno,
             'fecha' => Carbon::now()->format('d/m/Y'),
             'hash' => $hash,
@@ -230,6 +247,9 @@ class PdfReportController extends Controller
         }
 
         $data = [
+            'institucion' => $this->institucionNombre(),
+            'tituloDoc' => 'Acta Oficial de Calificaciones',
+            'docNumero' => 'Acta No. ACT-ASG-' . $asignacion->id_asignacion,
             'asignacion' => $asignacion,
             'fecha' => Carbon::now()->format('d/m/Y H:i'),
             'zonas' => $zonas,
@@ -254,6 +274,8 @@ class PdfReportController extends Controller
         $logs = Bitacora::where('fecha_hora', '>=', $startDate)->orderBy('fecha_hora', 'desc')->take(50)->get();
 
         $data = [
+            'institucion' => $this->institucionNombre(),
+            'tituloDoc' => 'Bitácora de Auditoría del Sistema',
             'logs' => $logs,
             'fecha' => Carbon::now()->format('d/m/Y H:i'),
             'usuario_generador' => auth()->user() ? auth()->user()->username : 'admin',
@@ -327,8 +349,11 @@ class PdfReportController extends Controller
         $this->logReporte('constancia');
 
         $data = [
+            'institucion' => $this->institucionNombre(),
+            'tituloDoc' => 'Constancia de Inscripción',
+            'docNumero' => 'Constancia No. CNS-ALU-' . $alumno->id_alumno,
             'alumno' => $alumno,
-            'fecha' => Carbon::now()->isoFormat('D [de] MMMM [de] YYYY'),
+            'fecha' => Carbon::now()->locale('es')->isoFormat('D [de] MMMM [de] YYYY'),
         ];
 
         $pdf = Pdf::loadView('pdf.constancia', $data);
@@ -339,7 +364,7 @@ class PdfReportController extends Controller
     {
         $this->logReporte('asistencia');
 
-        $asignacion = Asignacion::with('curso', 'inscripciones.alumno')->findOrFail($id_asignacion);
+        $asignacion = Asignacion::with('curso', 'grado', 'seccion', 'inscripciones.alumno')->findOrFail($id_asignacion);
         $fecha = $request->query('fecha', Carbon::now()->toDateString());
 
         $asistencias = Asistencia::whereIn('id_inscripcion', $asignacion->inscripciones->pluck('id_inscripcion'))
@@ -362,15 +387,16 @@ class PdfReportController extends Controller
         ];
 
         $data = [
-            'institucion' => config('app.name'),
+            'institucion' => $this->institucionNombre(),
+            'tituloDoc' => 'Control de Asistencia',
             'curso' => $asignacion->curso?->nombre_curso ?? '—',
-            'grado' => $asignacion->grado ?? '—',
-            'seccion' => $asignacion->seccion ?? '—',
-            'fecha' => Carbon::parse($fecha)->isoFormat('D [de] MMMM [de] YYYY'),
+            'grado' => $asignacion->grado?->nombre ?? '—',
+            'seccion' => $asignacion->seccion?->nombre ?? '—',
+            'fecha' => Carbon::parse($fecha)->locale('es')->isoFormat('D [de] MMMM [de] YYYY'),
             'alumnos' => $alumnos,
             'resumen' => $resumen,
             'usuario' => auth()->user()?->username ?? 'Sistema',
-            'fecha_generacion' => Carbon::now()->isoFormat('D [de] MMMM [de] YYYY [a las] HH:mm'),
+            'fecha_generacion' => Carbon::now()->locale('es')->isoFormat('D [de] MMMM [de] YYYY [a las] HH:mm'),
         ];
 
         $pdf = Pdf::loadView('pdf.asistencia', $data);
@@ -432,14 +458,15 @@ class PdfReportController extends Controller
         ];
 
         $data = [
-            'institucion' => config('app.name'),
+            'institucion' => $this->institucionNombre(),
+            'tituloDoc' => 'Lista Final de Asistencia',
             'curso' => $asignacion->curso?->nombre_curso ?? '—',
             'grado' => $asignacion->grado?->nombre ?? '—',
             'seccion' => $asignacion->seccion?->nombre ?? '—',
             'alumnos' => $alumnos,
             'totales' => $totales,
             'usuario' => auth()->user()?->username ?? 'Sistema',
-            'fecha_generacion' => Carbon::now()->isoFormat('D [de] MMMM [de] YYYY [a las] HH:mm'),
+            'fecha_generacion' => Carbon::now()->locale('es')->isoFormat('D [de] MMMM [de] YYYY [a las] HH:mm'),
         ];
 
         $pdf = Pdf::loadView('pdf.asistencia_final', $data);
@@ -466,7 +493,8 @@ class PdfReportController extends Controller
         });
 
         $data = [
-            'institucion' => config('app.name'),
+            'institucion' => $this->institucionNombre(),
+            'tituloDoc' => 'Avance Programático',
             'curso' => $asignacion->curso?->nombre_curso ?? '—',
             'grado' => $asignacion->grado?->nombre ?? '—',
             'seccion' => $asignacion->seccion?->nombre ?? '—',
@@ -474,7 +502,7 @@ class PdfReportController extends Controller
             'total_alumnos' => $asignacion->inscripciones->count(),
             'unidades' => $unidades,
             'usuario' => auth()->user()?->username ?? 'Sistema',
-            'fecha_generacion' => Carbon::now()->isoFormat('D [de] MMMM [de] YYYY [a las] HH:mm'),
+            'fecha_generacion' => Carbon::now()->locale('es')->isoFormat('D [de] MMMM [de] YYYY [a las] HH:mm'),
         ];
 
         $pdf = Pdf::loadView('pdf.avance_programatico', $data);

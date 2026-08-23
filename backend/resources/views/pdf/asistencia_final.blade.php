@@ -3,42 +3,28 @@
 <head>
     <meta charset="utf-8">
     <title>Lista Final de Asistencia</title>
-    <style>
-        @page { margin: 20px; }
-        body { font-family: 'Helvetica', 'Arial', sans-serif; font-size: 11px; }
-        .header { text-align: center; border-bottom: 2px solid #333; padding-bottom: 10px; margin-bottom: 20px; }
-        .header h1 { margin: 0; font-size: 18px; text-transform: uppercase; color: #1a365d; }
-        .header p { margin: 4px 0; color: #4a5568; font-size: 12px; }
-        table { width: 100%; border-collapse: collapse; margin-top: 10px; }
-        th { background-color: #1a365d; color: white; padding: 8px 6px; text-align: left; font-size: 10px; text-transform: uppercase; }
-        th.center, td.center { text-align: center; }
-        td { border: 1px solid #cbd5e0; padding: 6px; }
-        tr:nth-child(even) { background-color: #f7fafc; }
-        .aprueba { color: #276749; font-weight: bold; }
-        .en-riesgo { color: #b7791f; font-weight: bold; }
-        .reprueba { color: #c53030; font-weight: bold; }
-        .sin-registro { color: #a0aec0; }
-        .footer { position: fixed; bottom: 10px; width: 100%; text-align: center; font-size: 9px; color: #718096; border-top: 1px solid #e2e8f0; padding-top: 5px; }
-    </style>
+    @include('pdf.partials.styles')
 </head>
 <body>
-    <div class="header">
-        <h1>Lista Final de Asistencia</h1>
-        <p>{{ $institucion ?? 'SGA' }} | Curso: {{ $curso }}</p>
-        <p>{{ $grado }} - {{ $seccion }} | Total Alumnos: {{ count($alumnos) }}</p>
+    @include('pdf.partials.header')
+
+    <div class="sga-infobar">
+        <strong>Curso:</strong> {{ $curso }} &nbsp;|&nbsp;
+        <strong>Grado/Sección:</strong> {{ $grado }} - {{ $seccion }} &nbsp;|&nbsp;
+        <strong>Total alumnos:</strong> {{ count($alumnos) }}
     </div>
 
-    <table>
+    <table class="sga-table">
         <thead>
             <tr>
                 <th width="5%" class="center">No.</th>
-                <th width="30%">Alumno</th>
+                <th width="27%">Alumno</th>
                 <th width="9%" class="center">Sesiones</th>
                 <th width="9%" class="center">Presentes</th>
                 <th width="9%" class="center">Ausentes</th>
-                <th width="9%" class="center">Justificados</th>
+                <th width="10%" class="center">Justificados</th>
                 <th width="11%" class="center">% Asistencia</th>
-                <th width="18%" class="center">Estado</th>
+                <th width="20%" class="center">Estado</th>
             </tr>
         </thead>
         <tbody>
@@ -51,28 +37,34 @@
                 <td class="center">{{ $a['ausentes'] }}</td>
                 <td class="center">{{ $a['justificados'] }}</td>
                 <td class="center">{{ $a['pct'] !== null ? $a['pct'] . '%' : '—' }}</td>
-                <td class="center {{ $a['clase'] }}">{{ $a['estado'] }}</td>
+                <td class="center">
+                    @if($a['estado'] === 'Aprueba')
+                        <span class="sga-badge sga-badge-success">APRUEBA</span>
+                    @elseif($a['estado'] === 'En riesgo')
+                        <span class="sga-badge sga-badge-warning">EN RIESGO</span>
+                    @elseif($a['estado'] === 'Reprueba')
+                        <span class="sga-badge sga-badge-danger">REPRUEBA</span>
+                    @else
+                        <span class="sga-badge sga-badge-neutral">SIN REGISTROS</span>
+                    @endif
+                </td>
             </tr>
             @endforeach
         </tbody>
         <tfoot>
             <tr>
-                <td colspan="2" style="text-align: right; font-weight: bold;">Totales</td>
-                <td class="center" style="font-weight: bold;">—</td>
-                <td class="center" style="font-weight: bold;">{{ $totales['presentes'] }}</td>
-                <td class="center" style="font-weight: bold;">{{ $totales['ausentes'] }}</td>
-                <td class="center" style="font-weight: bold;">{{ $totales['justificados'] }}</td>
+                <td colspan="2" style="text-align: right;">Totales</td>
+                <td class="center">—</td>
+                <td class="center">{{ $totales['presentes'] }}</td>
+                <td class="center">{{ $totales['ausentes'] }}</td>
+                <td class="center">{{ $totales['justificados'] }}</td>
                 <td colspan="2" class="center">
-                    Aprueban: <strong>{{ $totales['aprueba'] }}</strong> |
-                    En riesgo: <strong>{{ $totales['en_riesgo'] }}</strong> |
-                    Reprueban: <strong>{{ $totales['reprueba'] }}</strong>
+                    Aprueban: {{ $totales['aprueba'] }} · En riesgo: {{ $totales['en_riesgo'] }} · Reprueban: {{ $totales['reprueba'] }}
                 </td>
             </tr>
         </tfoot>
     </table>
 
-    <div class="footer">
-        Documento generado por {{ $usuario }} el {{ $fecha_generacion }}
-    </div>
+    @include('pdf.partials.footer', ['footerTexto' => 'Documento generado por ' . $usuario . ' el ' . $fecha_generacion . '.'])
 </body>
 </html>
