@@ -77,15 +77,15 @@ Route::prefix('v1')->group(function () {
         Route::get('reportes/pdf/boletin/{id}', [PdfReportController::class, 'downloadBoletin']);
         Route::get('reportes/pdf/kardex/{id}',  [PdfReportController::class, 'downloadKardex']);
         Route::get('reportes/pdf/acta/{id_asignacion}', [PdfReportController::class, 'downloadActa']);
-        Route::get('reportes/pdf/bitacora',     [PdfReportController::class, 'downloadBitacora']);
+        Route::get('reportes/pdf/bitacora',     [PdfReportController::class, 'downloadBitacora'])->middleware('permiso:bitacoras');
         Route::get('reportes/pdf/constancia/{id}', [PdfReportController::class, 'downloadConstancia']);
         Route::get('reportes/pdf/asistencia/{id_asignacion}', [PdfReportController::class, 'downloadAsistencia']);
         Route::get('reportes/pdf/asistencia-final/{id_asignacion}', [PdfReportController::class, 'downloadAsistenciaFinal']);
         Route::get('reportes/rendimiento', [PdfReportController::class, 'rendimientoPorPeriodo'])->middleware('permiso:reportes');
 
         // Archivos - upload
-        Route::post('archivos/upload', [ArchivoController::class, 'upload']);
-        Route::get('archivos/{archivo}/descargar', [ArchivoController::class, 'descargar']);
+        Route::post('archivos/upload', [ArchivoController::class, 'upload'])->middleware('permiso:archivos');
+        Route::get('archivos/{archivo}/descargar', [ArchivoController::class, 'descargar'])->middleware('permiso:archivos');
 
         // Asistencia - batch por asignación
         Route::get('asistencias/por-asignacion/{id_asignacion}', [AsistenciaController::class, 'porAsignacion']);

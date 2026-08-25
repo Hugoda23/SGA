@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Models\Alumno;
 use App\Models\Asignacion;
 use App\Models\Inscripcion;
+use App\Models\Permiso;
 use App\Models\Rol;
 use App\Models\Usuario;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -26,6 +27,13 @@ class PdfReportesTest extends TestCase
     {
         $usuario = Usuario::factory()->create();
         $rol = Rol::factory()->create(['nombre' => 'admin']);
+
+        // Igual que RoleSeeder: el rol admin tiene todos los permisos.
+        foreach (Permiso::defaults() as $permiso) {
+            Permiso::firstOrCreate(['nombre' => $permiso['nombre']], $permiso);
+        }
+        $rol->permisos()->attach(Permiso::pluck('id_permiso'));
+
         $usuario->roles()->attach($rol->id_rol);
 
         $this->actingAs($usuario, 'sanctum');

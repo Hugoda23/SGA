@@ -4,6 +4,7 @@ namespace App\Traits;
 
 use App\Models\Asignacion;
 use App\Models\Catedratico;
+use App\Models\Usuario;
 use Illuminate\Http\Request;
 
 /**
@@ -36,9 +37,7 @@ trait VerificaPropietarioCurso
             return;
         }
 
-        $esStaff = $usuario->roles()->whereIn('nombre', ['admin', 'director', 'secretaria'])->exists();
-
-        if (!$esStaff) {
+        if (!$this->esStaff($usuario)) {
             return response()->json(['error' => 'No autorizado para este curso'], 403)->throwResponse();
         }
     }
@@ -51,5 +50,14 @@ trait VerificaPropietarioCurso
     private function catedraticoActual(Request $request): ?Catedratico
     {
         return Catedratico::where('id_usuario', $request->user()->id_usuario)->first();
+    }
+
+    /**
+     * Personal administrativo con acceso a cualquier curso/alumno, sin
+     * importar si tiene o no perfil de catedrático/alumno.
+     */
+    private function esStaff(Usuario $usuario): bool
+    {
+        return $usuario->roles()->whereIn('nombre', ['admin', 'director', 'secretaria'])->exists();
     }
 }

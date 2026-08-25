@@ -12,12 +12,36 @@ use App\Models\Bitacora;
 use App\Models\Configuracion;
 use App\Models\EntregaTarea;
 use App\Models\ReporteGenerado;
+use App\Traits\VerificaPropietarioCurso;
 use Barryvdh\DomPDF\Facade\Pdf;
 use SimpleSoftwareIO\QrCode\Facades\QrCode;
 use Carbon\Carbon;
 
 class PdfReportController extends Controller
 {
+    use VerificaPropietarioCurso;
+
+    /**
+     * Un alumno solo puede ver/descargar su propio boletín, kárdex o
+     * constancia; el personal administrativo (admin/director/secretaria)
+     * puede ver el de cualquier alumno. Antes de este chequeo, cualquier
+     * usuario autenticado (incluido otro alumno) podía descargar el
+     * historial académico de cualquier persona solo cambiando el ID en
+     * la URL.
+     */
+    private function verificarAccesoAlumno(Request $request, Alumno $alumno): void
+    {
+        $usuario = $request->user();
+
+        if ($usuario->alumno && $usuario->alumno->id_alumno === $alumno->id_alumno) {
+            return;
+        }
+
+        if (!$this->esStaff($usuario)) {
+            abort(403, 'No autorizado para ver la información de este alumno.');
+        }
+    }
+
     private function logReporte(string $tipo): ?ReporteGenerado
     {
         $usuario = auth()->user();
@@ -75,7 +99,7 @@ class PdfReportController extends Controller
         return self::$logoBase64Cache = base64_encode(file_get_contents($path));
     }
 
-    public function downloadBoletin($id)
+    public function downloadBoletin(Request $request, $id)
     {
         $alumno = Alumno::with([
             'inscripciones.asignacion.curso',
@@ -84,6 +108,7 @@ class PdfReportController extends Controller
             'inscripciones.asignacion.periodo',
             'inscripciones.calificacionesFinales',
         ])->findOrFail($id);
+        $this->verificarAccesoAlumno($request, $alumno);
         $reporte = $this->logReporte('boletin');
         $token = $reporte
             ? $this->makeToken(['id' => $reporte->id_reporte, 'alumno' => $alumno->id_alumno])
@@ -142,13 +167,14 @@ class PdfReportController extends Controller
         return $pdf->download('boletin_' . $alumno->id_alumno . '.pdf');
     }
 
-    public function downloadKardex($id)
+    public function downloadKardex(Request $request, $id)
     {
         $alumno = Alumno::with([
             'inscripciones.asignacion.curso',
             'inscripciones.asignacion.periodo',
             'inscripciones.calificacionesFinales',
         ])->findOrFail($id);
+        $this->verificarAccesoAlumno($request, $alumno);
         $this->logReporte('kardex');
 
         $notaMinima = (int) Configuracion::get('nota_minima', 61);
@@ -204,8 +230,10 @@ class PdfReportController extends Controller
         return $pdf->download('kardex_' . $alumno->id_alumno . '.pdf');
     }
 
-    public function downloadActa($id_asignacion)
+    public function downloadActa(Request $request, $id_asignacion)
     {
+        $this->verificarCatedratico($request, $id_asignacion);
+
         $asignacion = Asignacion::with([
             'curso',
             'grado',
@@ -386,9 +414,10 @@ class PdfReportController extends Controller
         ]);
     }
 
-    public function downloadConstancia($id)
+    public function downloadConstancia(Request $request, $id)
     {
         $alumno = Alumno::findOrFail($id);
+        $this->verificarAccesoAlumno($request, $alumno);
         $this->logReporte('constancia');
 
         $data = [
@@ -406,6 +435,7 @@ class PdfReportController extends Controller
 
     public function downloadAsistencia($id_asignacion, Request $request)
     {
+        $this->verificarCatedratico($request, $id_asignacion);
         $this->logReporte('asistencia');
 
         $asignacion = Asignacion::with('curso', 'grado', 'seccion', 'inscripciones.alumno')->findOrFail($id_asignacion);
@@ -448,8 +478,9 @@ class PdfReportController extends Controller
         return $pdf->download("asistencia_{$id_asignacion}_{$fecha}.pdf");
     }
 
-    public function downloadAsistenciaFinal($id_asignacion)
+    public function downloadAsistenciaFinal(Request $request, $id_asignacion)
     {
+        $this->verificarCatedratico($request, $id_asignacion);
         $this->logReporte('asistencia_final');
 
         $asignacion = Asignacion::with('curso', 'inscripciones.alumno')->findOrFail($id_asignacion);
@@ -519,8 +550,9 @@ class PdfReportController extends Controller
         return $pdf->download("asistencia_final_{$id_asignacion}.pdf");
     }
 
-    public function downloadAvanceProgramatico($id_asignacion)
+    public function downloadAvanceProgramatico(Request $request, $id_asignacion)
     {
+        $this->verificarCatedratico($request, $id_asignacion);
         $this->logReporte('avance_programatico');
 
         $asignacion = Asignacion::with('curso', 'grado', 'seccion', 'periodo', 'inscripciones', 'unidades.tareas')->findOrFail($id_asignacion);

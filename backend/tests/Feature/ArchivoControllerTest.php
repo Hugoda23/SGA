@@ -15,11 +15,6 @@ class ArchivoControllerTest extends TestCase
 {
     use RefreshDatabase;
 
-    private function actuarComoUsuarioAutenticado(): void
-    {
-        $this->actingAs(Usuario::factory()->create(), 'sanctum');
-    }
-
     private function actuarComoUsuarioConPermisoArchivos(): void
     {
         $usuario = Usuario::factory()->create();
@@ -34,7 +29,7 @@ class ArchivoControllerTest extends TestCase
     public function test_sube_un_archivo_valido(): void
     {
         Storage::fake('public');
-        $this->actuarComoUsuarioAutenticado();
+        $this->actuarComoUsuarioConPermisoArchivos();
 
         $archivo = UploadedFile::fake()->create('tarea.pdf', 500, 'application/pdf');
 
@@ -48,7 +43,7 @@ class ArchivoControllerTest extends TestCase
     public function test_rechaza_un_tipo_de_archivo_no_permitido(): void
     {
         Storage::fake('public');
-        $this->actuarComoUsuarioAutenticado();
+        $this->actuarComoUsuarioConPermisoArchivos();
 
         $archivo = UploadedFile::fake()->create('virus.exe', 100, 'application/x-msdownload');
 

@@ -4,11 +4,16 @@ namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
 use App\Models\Archivo;
+use App\Models\Catedratico;
+use App\Models\Material;
+use App\Traits\VerificaPropietarioCurso;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 
 class ArchivoController extends Controller
 {
+    use VerificaPropietarioCurso;
+
     public function index()
     {
         return Archivo::all();
@@ -46,13 +51,55 @@ class ArchivoController extends Controller
         return response()->json($archivo, 201);
     }
 
-    public function descargar(Archivo $archivo)
+    public function descargar(Request $request, Archivo $archivo)
     {
+        $this->verificarAccesoArchivo($request, $archivo);
+
         if (!Storage::disk('public')->exists($archivo->ruta)) {
             return response()->json(['error' => 'Archivo no encontrado'], 404);
         }
 
         return Storage::disk('public')->download($archivo->ruta, $archivo->nombre);
+    }
+
+    /**
+     * Tener el permiso "archivos.descargar" no basta: lo tienen todos los
+     * roles (incluido alumno), así que por sí solo no evita que un alumno
+     * descargue la tarea entregada por otro, o el material de un curso en
+     * el que no está inscrito. Aquí se verifica quién puede ver el curso al
+     * que pertenece este archivo (vía el material que lo referencia):
+     * personal administrativo, el catedrático dueño del curso, o un alumno
+     * inscrito en él. Un archivo que no está ligado a ningún material
+     * (p. ej. subido directo por administración) solo lo puede descargar
+     * personal administrativo.
+     */
+    private function verificarAccesoArchivo(Request $request, Archivo $archivo): void
+    {
+        $usuario = $request->user();
+
+        if ($this->esStaff($usuario)) {
+            return;
+        }
+
+        $material = Material::where('id_archivo', $archivo->id_archivo)->first();
+
+        if ($material) {
+            $catedratico = Catedratico::where('id_usuario', $usuario->id_usuario)->first();
+            if ($catedratico && $material->id_asignacion && $catedratico->id_catedratico === optional($material->asignacion)->id_catedratico) {
+                return;
+            }
+
+            if ($usuario->alumno && $material->id_asignacion) {
+                $inscrito = $usuario->alumno->inscripciones()
+                    ->where('id_asignacion', $material->id_asignacion)
+                    ->exists();
+                if ($inscrito) {
+                    return;
+                }
+            }
+        }
+
+        abort(403, 'No autorizado para descargar este archivo.');
     }
 
     public function store(Request $request)
