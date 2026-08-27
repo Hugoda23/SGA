@@ -33,14 +33,37 @@ class HorarioDetalleController extends Controller
             return response()->json(['message' => 'No se pudo guardar el horario.', 'errores' => [$errorRango]], 422);
         }
 
+        $diaSemana = $validated['dia_semana'] ?? null;
+
         $errores = $horarioService->verificarChoqueAula(
             $validated['id_asignacion'],
             $asignacion->id_aula,
             $asignacion->id_periodo,
-            $validated['dia_semana'] ?? null,
+            $diaSemana,
             $horaInicio,
             $horaFin
         );
+
+        if (empty($errores)) {
+            $errores = $horarioService->verificarChoqueCatedratico(
+                $validated['id_asignacion'],
+                $asignacion->id_catedratico,
+                $asignacion->id_periodo,
+                $diaSemana,
+                $horaInicio,
+                $horaFin
+            );
+        }
+
+        if (empty($errores)) {
+            $errores = $horarioService->verificarChoqueAlumnos(
+                $validated['id_asignacion'],
+                $asignacion->id_periodo,
+                $diaSemana,
+                $horaInicio,
+                $horaFin
+            );
+        }
 
         if (!empty($errores)) {
             return response()->json(['message' => 'No se pudo guardar el horario.', 'errores' => $errores], 422);
@@ -73,15 +96,40 @@ class HorarioDetalleController extends Controller
             return response()->json(['message' => 'No se pudo actualizar el horario.', 'errores' => [$errorRango]], 422);
         }
 
+        $diaSemana = $validated['dia_semana'] ?? $horarioDetalle->dia_semana;
+
         $errores = $horarioService->verificarChoqueAula(
             $horarioDetalle->id_asignacion,
             $asignacion->id_aula,
             $asignacion->id_periodo,
-            $validated['dia_semana'] ?? $horarioDetalle->dia_semana,
+            $diaSemana,
             $horaInicio,
             $horaFin,
             $horarioDetalle->id_horario
         );
+
+        if (empty($errores)) {
+            $errores = $horarioService->verificarChoqueCatedratico(
+                $horarioDetalle->id_asignacion,
+                $asignacion->id_catedratico,
+                $asignacion->id_periodo,
+                $diaSemana,
+                $horaInicio,
+                $horaFin,
+                $horarioDetalle->id_horario
+            );
+        }
+
+        if (empty($errores)) {
+            $errores = $horarioService->verificarChoqueAlumnos(
+                $horarioDetalle->id_asignacion,
+                $asignacion->id_periodo,
+                $diaSemana,
+                $horaInicio,
+                $horaFin,
+                $horarioDetalle->id_horario
+            );
+        }
 
         if (!empty($errores)) {
             return response()->json(['message' => 'No se pudo actualizar el horario.', 'errores' => $errores], 422);

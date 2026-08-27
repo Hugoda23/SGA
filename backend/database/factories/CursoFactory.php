@@ -13,7 +13,6 @@ class CursoFactory extends Factory
         return [
             'nombre_curso' => $this->faker->unique()->words(3, true),
             'descripcion' => $this->faker->sentence(),
-            'creditos' => $this->faker->numberBetween(2, 5),
         ];
     }
 }

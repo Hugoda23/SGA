@@ -1,5 +1,6 @@
 import { createContext, useContext, useState, useEffect, useCallback } from 'react'
 import api from '../api/axios'
+import { subscribeToPush, unsubscribeFromPush } from '../lib/push'
 
 const AuthContext = createContext(null)
 
@@ -17,6 +18,10 @@ export function AuthProvider({ children }) {
         .then((res) => {
           setUser(res.data)
           localStorage.setItem('sga_user', JSON.stringify(res.data))
+          // Silencioso: solo re-suscribe si el permiso ya fue concedido antes.
+          if (typeof Notification !== 'undefined' && Notification.permission === 'granted') {
+            subscribeToPush().catch(() => {})
+          }
         })
         .catch(() => {
           localStorage.removeItem('sga_token')
@@ -34,6 +39,8 @@ export function AuthProvider({ children }) {
     localStorage.setItem('sga_token', res.data.token)
     localStorage.setItem('sga_user', JSON.stringify(res.data.usuario))
     setUser(res.data.usuario)
+    // Pide permiso de notificaciones justo después del login (gesto del usuario).
+    subscribeToPush().catch(() => {})
     return res.data
   }, [])
 
@@ -50,6 +57,7 @@ export function AuthProvider({ children }) {
   }, [user])
 
   const logout = useCallback(async () => {
+    await unsubscribeFromPush().catch(() => {})
     try {
       await api.post('/v1/auth/logout')
     } catch {

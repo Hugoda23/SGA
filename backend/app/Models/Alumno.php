@@ -24,6 +24,7 @@ class Alumno extends Model
         'fecha_nacimiento',
         'id_carrera',
         'id_grado_actual',
+        'id_seccion_actual',
         'estado_academico',
     ];
 
@@ -35,6 +36,16 @@ class Alumno extends Model
     public function carrera()
     {
         return $this->belongsTo(Carrera::class, 'id_carrera', 'id_carrera');
+    }
+
+    public function grado()
+    {
+        return $this->belongsTo(Grado::class, 'id_grado_actual', 'id_grado');
+    }
+
+    public function seccion()
+    {
+        return $this->belongsTo(Seccion::class, 'id_seccion_actual', 'id_seccion');
     }
 
     public function inscripciones()

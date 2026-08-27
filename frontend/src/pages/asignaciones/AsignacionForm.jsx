@@ -63,7 +63,7 @@ export default function AsignacionForm() {
       setNuevoHorario({ dia_semana: 'Lunes', hora_inicio: '07:00:00', hora_fin: '08:00:00' })
       fetchHorarios()
     } catch (err) {
-      setAlertMessage(err.response?.data?.message || 'Error al agregar horario')
+      setAlertMessage(err.response?.data?.errores?.join('\n') || err.response?.data?.message || 'Error al agregar horario')
     }
   }
 

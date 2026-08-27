@@ -38,6 +38,9 @@ class EntregaTareaController extends Controller
             'archivo' => 'nullable|string|max:255',
             'link' => 'nullable|url|max:500',
             'calificacion' => "nullable|numeric|min:0|max:{$maxCalificacion}",
+        ], [
+            'calificacion.max' => "La calificación no puede ser mayor a {$maxCalificacion}, el máximo de puntos de la tarea.",
+            'calificacion.min' => 'La calificación no puede ser negativa.',
         ]);
 
         $tareaAsignacion = Tarea::findOrFail($validated['id_tarea'])->id_asignacion;
@@ -65,6 +68,9 @@ class EntregaTareaController extends Controller
             'archivo' => 'nullable|string|max:255',
             'link' => 'nullable|url|max:500',
             'calificacion' => "nullable|numeric|min:0|max:{$maxCalificacion}",
+        ], [
+            'calificacion.max' => "La calificación no puede ser mayor a {$maxCalificacion}, el máximo de puntos de la tarea.",
+            'calificacion.min' => 'La calificación no puede ser negativa.',
         ]);
 
         $entregaTarea->update($validated);
@@ -141,6 +147,9 @@ class EntregaTareaController extends Controller
 
         $validated = $request->validate([
             'calificacion' => "required|numeric|min:0|max:{$maxCalificacion}",
+        ], [
+            'calificacion.max' => "La calificación no puede ser mayor a {$maxCalificacion}, el máximo de puntos de la tarea.",
+            'calificacion.min' => 'La calificación no puede ser negativa.',
         ]);
 
         $entrega->update(['calificacion' => $validated['calificacion']]);

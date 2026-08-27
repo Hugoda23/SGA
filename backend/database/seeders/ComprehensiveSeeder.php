@@ -47,7 +47,6 @@ class ComprehensiveSeeder extends Seeder
             
             // 1. Configuracion
             Configuracion::firstOrCreate(['clave' => 'nombre_institucion'], ['valor' => 'Instituto Florencio Carrascoza']);
-            Configuracion::firstOrCreate(['clave' => 'ciclo_activo'], ['valor' => '2026']);
             Configuracion::firstOrCreate(['clave' => 'nota_minima'], ['valor' => '61']);
 
             // 2. Roles

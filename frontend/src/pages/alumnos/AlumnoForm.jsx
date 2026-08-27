@@ -11,9 +11,8 @@ export default function AlumnoForm() {
   const navigate = useNavigate()
   const [form, setForm] = useState({
     codigo_mineduc: '', nombre: '', apellido: '', correo: '',
-    telefono: '', fecha_nacimiento: '', id_carrera: '', estado_academico: 'activo',
+    telefono: '', fecha_nacimiento: '', estado_academico: 'activo',
   })
-  const [carreras, setCarreras] = useState([])
   const [passwordTemporal, setPasswordTemporal] = useState('')
   const [loading, setLoading] = useState(false)
   const [alertMessage, setAlertMessage] = useState(null)
@@ -26,9 +25,6 @@ export default function AlumnoForm() {
   ]
 
   useEffect(() => {
-    api.get('/v1/carreras').then((res) =>
-      setCarreras(res.data.map((c) => ({ value: c.id_carrera, label: c.nombre_carrera })))
-    )
     if (isEdit) {
       api.get(`/v1/alumnos/${id}`).then((res) => {
         const a = res.data
@@ -39,7 +35,6 @@ export default function AlumnoForm() {
           correo: a.correo || '',
           telefono: a.telefono || '',
           fecha_nacimiento: a.fecha_nacimiento || '',
-          id_carrera: a.id_carrera || '',
           estado_academico: a.estado_academico || 'activo',
         })
       })
@@ -105,7 +100,6 @@ export default function AlumnoForm() {
           <FormInput label="Teléfono" name="telefono" value={form.telefono} onChange={handleChange} placeholder="Teléfono" />
           <FormInput label="Fecha de Nacimiento" name="fecha_nacimiento" type="date" value={form.fecha_nacimiento} onChange={handleChange} required={!isEdit} />
         </div>
-        <FormInput label="Carrera" name="id_carrera" type="select" value={form.id_carrera} onChange={handleChange} options={carreras} />
         <FormInput label="Estado Académico" name="estado_academico" type="select" value={form.estado_academico} onChange={handleChange} options={estadosAcademicos} />
         <div className="flex gap-3 pt-2">
           <button type="submit" disabled={loading} className={`${btn.primary} disabled:cursor-not-allowed disabled:opacity-60`}>

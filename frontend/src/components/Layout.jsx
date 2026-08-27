@@ -2,6 +2,7 @@ import { useState, useEffect, useRef, Suspense } from 'react'
 import { NavLink, Link, Outlet, useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import api from '../api/axios'
+import { subscribeToPush } from '../lib/push'
 import { badge } from '../lib/twClasses'
 import logo from '../assets/logo.jpg'
 
@@ -24,21 +25,22 @@ const navItems = [
   {
     label: 'Reportes PDF',
     icon: 'M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z',
-    roles: ['admin', 'director'],
+    roles: ['admin', 'director', 'secretaria'],
     permiso: 'reportes.ver',
     subItems: [
       { label: 'Actas', path: '/reportes/actas' },
       { label: 'Notas', path: '/reportes/notas' },
       { label: 'Constancias', path: '/reportes/constancias' },
-      { label: 'Rendimiento', path: '/reportes/rendimiento' }
+      { label: 'Rendimiento', path: '/reportes/rendimiento' },
+      { label: 'Listado de Alumnos', path: '/reportes/listado-alumnos' }
     ]
   },
   { label: 'Bitácora de Auditoría', path: '/auditoria', icon: 'M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z', roles: ['admin'], permiso: 'bitacoras.ver' },
-  { label: 'Logs del Sistema', path: '/admin/logs', icon: 'M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z', roles: ['admin'], permiso: 'logs.ver' },
+  { label: 'Logs del Sistema', path: '/admin/logs', icon: 'M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z', roles: ['admin', 'director', 'secretaria'], permiso: 'logs.ver' },
   { label: 'Catedráticos', path: '/catedraticos', icon: 'M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z', roles: ['admin', 'director', 'secretaria'], permiso: 'catedraticos.ver' },
   { label: 'Alumnos', path: '/alumnos', icon: 'M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z', roles: ['admin', 'director', 'secretaria'], permiso: 'alumnos.ver' },
-  { label: 'Carreras', path: '/carreras', icon: 'M4.26 10.147a60.436 60.436 0 00-.491 6.347A48.627 48.627 0 0112 20.904a48.627 48.627 0 018.232-4.41 60.46 60.46 0 00-.491-6.347m-15.482 0a50.57 50.57 0 00-2.658-.813A59.905 59.905 0 0112 3.493a59.902 59.902 0 0110.399 5.84c-.896.248-1.783.52-2.658.814m-15.482 0A50.697 50.697 0 0112 13.489a50.702 50.702 0 017.74-3.342', roles: ['admin', 'director'], permiso: 'carreras.ver' },
-  { label: 'Periodos', path: '/periodos', icon: 'M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z', roles: ['admin', 'director'], permiso: 'periodos.ver' },
+  { label: 'Carreras', path: '/carreras', icon: 'M4.26 10.147a60.436 60.436 0 00-.491 6.347A48.627 48.627 0 0112 20.904a48.627 48.627 0 018.232-4.41 60.46 60.46 0 00-.491-6.347m-15.482 0a50.57 50.57 0 00-2.658-.813A59.905 59.905 0 0112 3.493a59.902 59.902 0 0110.399 5.84c-.896.248-1.783.52-2.658.814m-15.482 0A50.697 50.697 0 0112 13.489a50.702 50.702 0 017.74-3.342', roles: ['admin', 'director', 'secretaria'], permiso: 'carreras.ver' },
+  { label: 'Periodos', path: '/periodos', icon: 'M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z', roles: ['admin', 'director', 'secretaria'], permiso: 'periodos.ver' },
   { label: 'Pensum', path: '/pensum', icon: 'M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4', roles: ['admin', 'director'], permiso: 'pensum.ver' },
   { label: 'Asignaciones', path: '/asignaciones', icon: 'M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2', roles: ['admin', 'director', 'secretaria'], permiso: 'asignaciones.ver' },
   { label: 'Inscripciones', path: '/inscripciones', icon: 'M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z', roles: ['admin', 'director', 'secretaria'], permiso: 'inscripciones.ver' },
@@ -46,7 +48,7 @@ const navItems = [
   { label: 'Permisos', path: '/permisos', icon: 'M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z', roles: ['admin'], permiso: 'permisos.ver' },
   { label: 'Configuración', path: '/configuracion', icon: 'M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z M15 12a3 3 0 11-6 0 3 3 0 016 0z', roles: ['admin'], permiso: 'configuracion.ver' },
   { label: 'Notificaciones', path: '/notificaciones', icon: 'M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9', roles: ['admin', 'director', 'secretaria', 'catedratico', 'alumno'] },
-  { label: 'Historial Reportes', path: '/reportes-generados', icon: 'M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z', roles: ['admin', 'director'], permiso: 'reportes.ver' },
+  { label: 'Historial Reportes', path: '/reportes-generados', icon: 'M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z', roles: ['admin', 'director', 'secretaria'], permiso: 'reportes.ver' },
   { label: 'Mis Tareas', path: '/mis-tareas', icon: 'M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2', roles: ['alumno'] },
   { label: 'Mis Cursos', path: '/mis-cursos-alumno', icon: 'M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253', roles: ['alumno'] },
   { label: 'Mi Horario', path: '/mi-horario', icon: 'M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z', roles: ['alumno', 'catedratico'] },
@@ -73,6 +75,14 @@ export default function Layout() {
   const [notifDropdown, setNotifDropdown] = useState(false)
   const [notifList, setNotifList] = useState([])
   const [userDropdown, setUserDropdown] = useState(false)
+  const [notifPermission, setNotifPermission] = useState(
+    typeof Notification !== 'undefined' ? Notification.permission : 'denied'
+  )
+  const [version, setVersion] = useState('')
+
+  useEffect(() => {
+    api.get('/v1/sistema/estado').then((r) => setVersion(r.data.version || '')).catch(() => {})
+  }, [])
   const notifRef = useRef(null)
   const userRef = useRef(null)
   const navigate = useNavigate()
@@ -116,6 +126,11 @@ export default function Layout() {
     try { await api.post('/v1/notificaciones/marcar-todas-leidas'); fetchNotifCount(); fetchNotifList() } catch {}
   }
 
+  const handleActivarPush = async () => {
+    await subscribeToPush().catch(() => {})
+    if (typeof Notification !== 'undefined') setNotifPermission(Notification.permission)
+  }
+
   const formatNotifTime = (dateStr) => {
     if (!dateStr) return ''
     const date = new Date(dateStr)
@@ -153,6 +168,8 @@ export default function Layout() {
     ? `${user.alumno.nombre} ${user.alumno.apellido}`.trim()
     : user?.catedratico
     ? `${user.catedratico.nombre} ${user.catedratico.apellido}`.trim()
+    : user?.nombre
+    ? `${user.nombre} ${user.apellido}`.trim()
     : user?.username || 'Alejandro Díaz'
 
   const userRoleStr = user?.roles?.[0]?.nombre
@@ -172,7 +189,7 @@ export default function Layout() {
         <div className="flex items-center gap-3.5 border-b border-neutral-600/40 p-6">
           <img src={logo} alt="Instituto Florencio Carrascoza" className="h-10 w-10 shrink-0 rounded-lg object-contain shadow-2" />
           <div>
-            <h1 className="text-xl font-bold leading-tight tracking-tight">Inst.<br />Florencio</h1>
+            <h1 className="text-xl font-bold leading-tight tracking-tight">Instituto<br />Florencio</h1>
             <p className="mt-0.5 text-[10px] font-bold uppercase tracking-widest text-neutral-400">Carrascoza</p>
           </div>
         </div>
@@ -235,17 +252,22 @@ export default function Layout() {
             })}
           </nav>
         </div>
+        {version && (
+          <div className="border-t border-neutral-700/40 px-6 py-3 text-center text-[10px] font-semibold uppercase tracking-widest text-neutral-500">
+            v{version}
+          </div>
+        )}
       </aside>
 
       <div className="flex min-w-0 flex-1 flex-col">
         <header className="sticky top-0 z-10 flex items-center justify-between border-b border-neutral-200 bg-white px-6 py-3.5 shadow-sm">
-          <div className="flex items-center gap-4 lg:hidden">
-            <button type="button" onClick={() => setSidebarOpen(!sidebarOpen)} className="text-neutral-600">
+          <div className="flex min-w-0 items-center gap-4 lg:hidden">
+            <button type="button" onClick={() => setSidebarOpen(!sidebarOpen)} className="shrink-0 text-neutral-600">
               <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
               </svg>
             </button>
-            <h2 className="font-semibold text-neutral-800">SGA</h2>
+            <h2 className="truncate font-semibold text-neutral-800">Instituto Florencio Carrascoza</h2>
           </div>
           <div className="hidden flex-1 lg:flex"></div>
 
@@ -262,12 +284,19 @@ export default function Layout() {
                 <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
                 </svg>
-                {notifCount > 0 && (
-                  <span className="absolute -right-1 -top-1 inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-danger px-1 text-[10px] font-bold text-white shadow-danger-3 dark:shadow-black/30">
-                    {notifCount > 9 ? '9+' : notifCount}
-                  </span>
-                )}
               </button>
+              {notifCount > 0 && (
+                // Fuera del <button>: la directiva data-twe-ripple-init le
+                // agrega overflow:hidden en tiempo de ejecución (para
+                // contener la animación de "ripple" al hacer click), lo
+                // que recortaba este badge cuando vivía adentro. Como
+                // hermano del botón, sigue visualmente pegado a su esquina
+                // pero ya no lo corta; pointer-events-none deja que el
+                // click le siga llegando al botón de abajo.
+                <span className="pointer-events-none absolute -right-1 -top-1 inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-danger px-1 text-[10px] font-bold leading-none text-white shadow-danger-3 dark:shadow-black/30">
+                  {notifCount > 9 ? '9+' : notifCount}
+                </span>
+              )}
               {notifDropdown && (
                 <div className="absolute right-0 top-full z-50 mt-3 w-80 overflow-hidden rounded-xl bg-white shadow-4 dark:bg-surface-dark dark:border dark:border-neutral-700">
                   <div className="flex items-center justify-between border-b-2 border-neutral-100 p-4 dark:border-neutral-700">
@@ -293,6 +322,19 @@ export default function Layout() {
                       </button>
                     </div>
                   </div>
+                  {notifPermission === 'default' && (
+                    <button
+                      type="button"
+                      data-twe-ripple-init
+                      onClick={handleActivarPush}
+                      className="flex w-full items-center gap-2 border-b border-neutral-100 bg-primary-50 px-4 py-2.5 text-left text-xs font-semibold text-primary transition hover:bg-primary-100 dark:border-neutral-700 dark:bg-primary-900/20 dark:text-primary-300"
+                    >
+                      <svg className="h-4 w-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+                      </svg>
+                      Activar notificaciones del navegador
+                    </button>
+                  )}
                   {notifList.length === 0 ? (
                     <div className="p-6 text-center text-sm font-medium text-neutral-400">
                       Sin notificaciones nuevas

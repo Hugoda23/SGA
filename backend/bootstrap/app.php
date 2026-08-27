@@ -16,6 +16,8 @@ return Application::configure(basePath: dirname(__DIR__))
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->alias([
             'permiso' => \App\Http\Middleware\EnsurePermiso::class,
+            'refresh.token' => \App\Http\Middleware\RefreshSanctumToken::class,
+            'mantenimiento' => \App\Http\Middleware\CheckMantenimiento::class,
         ]);
 
         $middleware->trustProxies(at: '*');

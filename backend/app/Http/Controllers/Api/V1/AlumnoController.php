@@ -18,7 +18,7 @@ class AlumnoController extends Controller
         $perPage = max(1, min((int) $request->query('per_page', 50), 1000));
         $q = trim((string) $request->query('q', ''));
 
-        $query = Alumno::with('usuario', 'carrera', 'inscripciones');
+        $query = Alumno::with('usuario', 'carrera', 'grado', 'inscripciones');
 
         if ($q !== '') {
             $query->where(function ($w) use ($q) {
@@ -98,6 +98,8 @@ class AlumnoController extends Controller
             'telefono' => 'nullable|string|max:20',
             'fecha_nacimiento' => 'nullable|date',
             'id_carrera' => 'nullable|exists:carrera,id_carrera',
+            'id_grado_actual' => 'nullable|exists:grado,id_grado',
+            'id_seccion_actual' => 'nullable|exists:seccion,id_seccion',
             'estado_academico' => 'sometimes|string|in:activo,inactivo,egresado,retirado',
         ]);
 

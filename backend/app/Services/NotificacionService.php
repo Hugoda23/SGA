@@ -4,20 +4,26 @@ namespace App\Services;
 
 use App\Models\Notificacion;
 use App\Models\Usuario;
+use App\Notifications\SgaAviso;
 
 class NotificacionService
 {
     /**
-     * Crea una notificación para un usuario (modelo).
+     * Crea una notificación para un usuario (modelo) y la empuja por
+     * Web Push si el usuario tiene alguna suscripción activa.
      */
     public static function crear(Usuario $usuario, string $mensaje): Notificacion
     {
-        return Notificacion::create([
+        $notificacion = Notificacion::create([
             'id_usuario' => $usuario->id_usuario,
             'mensaje' => $mensaje,
             'fecha' => now(),
             'leido' => false,
         ]);
+
+        $usuario->notify(new SgaAviso($mensaje));
+
+        return $notificacion;
     }
 
     /**
@@ -46,12 +52,13 @@ class NotificacionService
             return;
         }
 
-        Notificacion::create([
-            'id_usuario' => $idUsuario,
-            'mensaje' => $mensaje,
-            'fecha' => now(),
-            'leido' => false,
-        ]);
+        $usuario = Usuario::find($idUsuario);
+
+        if (!$usuario) {
+            return;
+        }
+
+        self::crear($usuario, $mensaje);
     }
 
     /**

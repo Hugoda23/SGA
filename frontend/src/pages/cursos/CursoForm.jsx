@@ -9,14 +9,14 @@ export default function CursoForm() {
   const { id } = useParams()
   const isEdit = !!id
   const navigate = useNavigate()
-  const [form, setForm] = useState({ nombre_curso: '', descripcion: '', creditos: null, carreras: [] })
+  const [form, setForm] = useState({ nombre_curso: '', descripcion: '', carreras: [] })
   const [carreras, setCarreras] = useState([])
   const [alertMessage, setAlertMessage] = useState(null)
 
   useEffect(() => {
     api.get('/v1/carreras').then((res) => setCarreras(res.data.map((c) => ({ value: c.id_carrera, label: c.nombre_carrera }))))
     if (isEdit) api.get(`/v1/cursos/${id}`).then((res) => {
-      const c = res.data; setForm({ nombre_curso: c.nombre_curso || '', descripcion: c.descripcion || '', creditos: c.creditos ?? null, carreras: (c.carreras || []).map((x) => x.id_carrera) })
+      const c = res.data; setForm({ nombre_curso: c.nombre_curso || '', descripcion: c.descripcion || '', carreras: (c.carreras || []).map((x) => x.id_carrera) })
     })
   }, [id, isEdit])
 
@@ -36,7 +36,6 @@ export default function CursoForm() {
     const payload = {
       nombre_curso: form.nombre_curso,
       descripcion: form.descripcion === '' ? null : form.descripcion,
-      creditos: form.creditos === '' || form.creditos === null ? null : Number(form.creditos),
       carreras: form.carreras,
     }
     try {
@@ -59,7 +58,6 @@ export default function CursoForm() {
       <form onSubmit={handleSubmit} className="rounded-xl bg-white p-6 shadow-4 space-y-4 dark:bg-surface-dark">
         <FormInput label="Nombre del Curso" name="nombre_curso" value={form.nombre_curso} onChange={handleChange} required placeholder="Nombre" />
         <FormInput label="Descripción" name="descripcion" type="textarea" value={form.descripcion} onChange={handleChange} placeholder="Descripción" />
-        <FormInput label="Créditos" name="creditos" type="number" min={0} max={20} value={form.creditos === null ? '' : form.creditos} onChange={handleChange} placeholder="Créditos del curso" />
         <div>
           <label className={input.label}>Carreras (un curso puede pertenecer a varias)</label>
           <div className="grid max-h-60 grid-cols-1 gap-2 overflow-y-auto rounded-lg border border-neutral-300 bg-white p-3 dark:border-neutral-600 dark:bg-neutral-800">

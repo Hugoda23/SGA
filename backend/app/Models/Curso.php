@@ -17,7 +17,6 @@ class Curso extends Model
     protected $fillable = [
         'nombre_curso',
         'descripcion',
-        'creditos',
     ];
 
     public function carreras()

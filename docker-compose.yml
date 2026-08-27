@@ -5,6 +5,26 @@ version: "3.9"
 # Arquitectura Headless: Laravel API + React + PostgreSQL
 # ============================================================
 
+# Variables de entorno compartidas por los contenedores que corren código
+# Laravel (backend, queue-worker, scheduler).
+x-backend-env: &backend-env
+  APP_NAME: "SGA"
+  APP_ENV: "${APP_ENV:-local}"
+  APP_KEY: "${APP_KEY:-}"
+  APP_DEBUG: "${APP_DEBUG:-true}"
+  APP_URL: http://localhost:8081
+  DB_CONNECTION: pgsql
+  DB_HOST: db
+  DB_PORT: 5432
+  DB_DATABASE: ${DB_DATABASE:-sga_db}
+  DB_USERNAME: ${DB_USERNAME:-sga_user}
+  DB_PASSWORD: ${DB_PASSWORD:-sga_secret}
+  # Incluye la IP de LAN de esta máquina para poder probar el sistema
+  # desde otros dispositivos en la misma red antes de pasar a
+  # producción — si la IP de la máquina cambia, actualizar aquí.
+  CORS_ALLOWED_ORIGINS: "http://localhost:3002,http://localhost:8081,http://192.168.1.106:3002,http://192.168.1.106:8081"
+  QUEUE_CONNECTION: database
+
 services:
 
   # ----------------------------------------------------------
@@ -44,19 +64,52 @@ services:
     volumes:
       - ./backend:/var/www/html
       - ./docker/php/local.ini:/usr/local/etc/php/conf.d/local.ini
-    environment:
-      APP_NAME: "SGA"
-      APP_ENV: "${APP_ENV:-local}"
-      APP_KEY: "${APP_KEY:-}"
-      APP_DEBUG: "${APP_DEBUG:-true}"
-      APP_URL: http://localhost:8081
-      DB_CONNECTION: pgsql
-      DB_HOST: db
-      DB_PORT: 5432
-      DB_DATABASE: ${DB_DATABASE:-sga_db}
-      DB_USERNAME: ${DB_USERNAME:-sga_user}
-      DB_PASSWORD: ${DB_PASSWORD:-sga_secret}
-      CORS_ALLOWED_ORIGINS: "http://localhost:3002"
+    environment: *backend-env
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - sga_network
+
+  # ----------------------------------------------------------
+  # Procesa la cola (envío de notificaciones push, jobs en general).
+  # Sin este contenedor, todo lo despachado con ShouldQueue se queda
+  # sentado en la tabla "jobs" y nunca se envía.
+  # ----------------------------------------------------------
+  queue-worker:
+    build:
+      context: ./docker/php
+      dockerfile: Dockerfile
+    container_name: sga_queue_worker
+    restart: unless-stopped
+    working_dir: /var/www/html
+    volumes:
+      - ./backend:/var/www/html
+      - ./docker/php/local.ini:/usr/local/etc/php/conf.d/local.ini
+    environment: *backend-env
+    command: sh -c "php artisan queue:listen --tries=3 --timeout=0"
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - sga_network
+
+  # ----------------------------------------------------------
+  # Dispara el scheduler de Laravel (routes/console.php) cada minuto —
+  # de ahí sale "sga:generar-notificaciones" a las 6:00 AM.
+  # ----------------------------------------------------------
+  scheduler:
+    build:
+      context: ./docker/php
+      dockerfile: Dockerfile
+    container_name: sga_scheduler
+    restart: unless-stopped
+    working_dir: /var/www/html
+    volumes:
+      - ./backend:/var/www/html
+      - ./docker/php/local.ini:/usr/local/etc/php/conf.d/local.ini
+    environment: *backend-env
+    command: sh -c "while :; do php artisan schedule:run --no-interaction; sleep 60; done"
     depends_on:
       db:
         condition: service_healthy
@@ -96,7 +149,13 @@ services:
       - "3002:5173"
     environment:
       - CHOKIDAR_USEPOLLING=true
-      - VITE_API_URL=http://localhost:8081/api
+      # IP de LAN de esta máquina, para poder probar el sistema desde otros
+      # dispositivos en la misma red antes de pasar a producción — si la IP
+      # de la máquina cambia, actualizar aquí.
+      - VITE_API_URL=http://192.168.1.106:8081/api
+      # Clave pública VAPID (ver backend/.env, VAPID_PUBLIC_KEY) — la privada
+      # nunca sale del backend.
+      - VITE_VAPID_PUBLIC_KEY=BF1uhqkdXs4a_H7TC0mPzPnvXb3KcZU3yJ1guvVzoT_XeiNnJWpQSAcJ3QgdarkBLtrww7ub2ceNbR-2l3vUJc4
     networks:
       - sga_network
 

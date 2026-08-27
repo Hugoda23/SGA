@@ -7,7 +7,7 @@ export default function UserList() {
   const [data, setData] = useState([])
   const [loading, setLoading] = useState(true)
   const [showForm, setShowForm] = useState(false)
-  const [form, setForm] = useState({ username: '', password: '', rol: 'admin', estado: 'activo' })
+  const [form, setForm] = useState({ username: '', password: '', rol: 'admin', estado: 'activo', nombre: '', apellido: '' })
   const [viewUser, setViewUser] = useState(null)
   const [editUser, setEditUser] = useState(null)
   const [search, setSearch] = useState('')
@@ -39,7 +39,7 @@ export default function UserList() {
     try {
       await api.post('/v1/usuarios/admin', form)
       setShowForm(false)
-      setForm({ username: '', password: '', rol: 'admin', estado: 'activo' })
+      setForm({ username: '', password: '', rol: 'admin', estado: 'activo', nombre: '', apellido: '' })
       fetchData()
       setAlertMessage('Usuario creado exitosamente.')
     } catch (err) {
@@ -58,10 +58,8 @@ export default function UserList() {
       return
     }
     try {
-      const payload = { username: editUser.username, estado: editUser.estado };
+      const payload = { username: editUser.username, estado: editUser.estado, nombre: editUser.nombre, apellido: editUser.apellido };
       if (editUser.hasProfile) {
-        payload.nombre = editUser.nombre;
-        payload.apellido = editUser.apellido;
         payload.correo = editUser.correo;
         payload.telefono = editUser.telefono;
       }
@@ -196,7 +194,7 @@ export default function UserList() {
                         <span className="font-medium text-neutral-700">{user.username}</span>
                       </td>
                       <td className={`${tbl.td} font-medium`}>
-                        {user.alumno ? `${user.alumno.nombre} ${user.alumno.apellido}` : user.catedratico ? `${user.catedratico.nombre} ${user.catedratico.apellido}` : 'Administrador / Personal'}
+                        {user.alumno ? `${user.alumno.nombre} ${user.alumno.apellido}` : user.catedratico ? `${user.catedratico.nombre} ${user.catedratico.apellido}` : user.nombre ? `${user.nombre} ${user.apellido}` : 'Administrador / Personal'}
                       </td>
                       <td className={tbl.td}>
                         <span className={`${badge.primary} capitalize`}>
@@ -221,13 +219,13 @@ export default function UserList() {
                             type="button"
                             onClick={() => {
                               const profile = user.alumno || user.catedratico;
-                              setEditUser({ 
-                                id_usuario: user.id_usuario, 
-                                username: user.username, 
+                              setEditUser({
+                                id_usuario: user.id_usuario,
+                                username: user.username,
                                 estado: user.estado,
                                 hasProfile: !!profile,
-                                nombre: profile?.nombre || '',
-                                apellido: profile?.apellido || '',
+                                nombre: profile?.nombre || user.nombre || '',
+                                apellido: profile?.apellido || user.apellido || '',
                                 correo: profile?.correo || '',
                                 telefono: profile?.telefono || '',
                               });
@@ -270,6 +268,16 @@ export default function UserList() {
         }
       >
         <form id="form-user-create" onSubmit={handleCreate} className="space-y-4">
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className={input.label}>Nombre *</label>
+              <input name="nombre" value={form.nombre} onChange={handleChange} required className={input.base} />
+            </div>
+            <div>
+              <label className={input.label}>Apellido *</label>
+              <input name="apellido" value={form.apellido} onChange={handleChange} required className={input.base} />
+            </div>
+          </div>
           <div>
             <label className={input.label}>Usuario *</label>
             <input name="username" value={form.username} onChange={handleChange} required className={input.base} />
@@ -303,7 +311,7 @@ export default function UserList() {
           <p><span className="font-semibold text-neutral-700 dark:text-neutral-300">Username:</span> {viewUser.username}</p>
           <p><span className="font-semibold text-neutral-700 dark:text-neutral-300">Estado:</span> <span className="capitalize">{viewUser.estado}</span></p>
           <p><span className="font-semibold text-neutral-700 dark:text-neutral-300">Rol Principal:</span> <span className="capitalize">{viewUser.roles?.[0]?.nombre || 'Sin rol'}</span></p>
-          <p><span className="font-semibold text-neutral-700 dark:text-neutral-300">Nombre Completo:</span> {viewUser.alumno ? `${viewUser.alumno.nombre} ${viewUser.alumno.apellido}` : viewUser.catedratico ? `${viewUser.catedratico.nombre} ${viewUser.catedratico.apellido}` : 'Administrador / Personal'}</p>
+          <p><span className="font-semibold text-neutral-700 dark:text-neutral-300">Nombre Completo:</span> {viewUser.alumno ? `${viewUser.alumno.nombre} ${viewUser.alumno.apellido}` : viewUser.catedratico ? `${viewUser.catedratico.nombre} ${viewUser.catedratico.apellido}` : viewUser.nombre ? `${viewUser.nombre} ${viewUser.apellido}` : 'Administrador / Personal'}</p>
         </div>
       </Modal>
       )}
@@ -334,18 +342,18 @@ export default function UserList() {
               <option value="inactivo">Inactivo</option>
             </select>
           </div>
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className={input.label}>Nombre</label>
+              <input value={editUser.nombre} onChange={(e) => setEditUser({...editUser, nombre: e.target.value})} required className={input.base} />
+            </div>
+            <div>
+              <label className={input.label}>Apellido</label>
+              <input value={editUser.apellido} onChange={(e) => setEditUser({...editUser, apellido: e.target.value})} required className={input.base} />
+            </div>
+          </div>
           {editUser.hasProfile && (
             <>
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className={input.label}>Nombre</label>
-                  <input value={editUser.nombre} onChange={(e) => setEditUser({...editUser, nombre: e.target.value})} required className={input.base} />
-                </div>
-                <div>
-                  <label className={input.label}>Apellido</label>
-                  <input value={editUser.apellido} onChange={(e) => setEditUser({...editUser, apellido: e.target.value})} required className={input.base} />
-                </div>
-              </div>
               <div>
                 <label className={input.label}>Correo Electrónico</label>
                 <input type="email" value={editUser.correo} onChange={(e) => setEditUser({...editUser, correo: e.target.value})} required className={input.base} />

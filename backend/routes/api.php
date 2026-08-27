@@ -20,6 +20,7 @@ use App\Http\Controllers\Api\V1\EvaluacionController;
 use App\Http\Controllers\Api\V1\HorarioDetalleController;
 use App\Http\Controllers\Api\V1\InscripcionController;
 use App\Http\Controllers\Api\V1\NotificacionController;
+use App\Http\Controllers\Api\V1\PushSubscriptionController;
 use App\Http\Controllers\Api\V1\PensumController;
 use App\Http\Controllers\Api\V1\PeriodoAcademicoController;
 use App\Http\Controllers\Api\V1\PermisoController;
@@ -44,12 +45,13 @@ use App\Http\Controllers\Api\V1\AlumnoCursoController;
 use App\Http\Controllers\Api\V1\ZonaEvaluacionController;
 
 Route::prefix('v1')->group(function () {
+    Route::get('sistema/estado',       [ConfiguracionController::class, 'estadoPublico']);
     Route::post('auth/login',          [AuthController::class, 'login'])->middleware('throttle:login');
     Route::post('auth/logout',         [AuthController::class, 'logout'])->middleware('auth:sanctum');
-    Route::get('auth/me',              [AuthController::class, 'me'])->middleware('auth:sanctum');
+    Route::get('auth/me',              [AuthController::class, 'me'])->middleware(['auth:sanctum', 'refresh.token']);
     Route::post('auth/change-password', [AuthController::class, 'changePassword'])->middleware('auth:sanctum');
 
-    Route::middleware(['auth:sanctum', 'throttle:api'])->group(function () {
+    Route::middleware(['auth:sanctum', 'mantenimiento', 'refresh.token', 'throttle:api'])->group(function () {
         Route::get('dashboard/stats', [DashboardController::class, 'stats']);
         Route::get('catedratico/mis-cursos', [MisCursosController::class, 'index']);
         Route::get('catedratico/horario', [MisCursosController::class, 'horario']);
@@ -73,6 +75,10 @@ Route::prefix('v1')->group(function () {
         Route::patch('notificaciones/{notificacion}/leido', [NotificacionController::class, 'marcarLeido']);
         Route::post('notificaciones/marcar-todas-leidas', [NotificacionController::class, 'marcarTodasLeidas']);
 
+        // Suscripción a notificaciones push del navegador (Web Push)
+        Route::post('push/subscribe', [PushSubscriptionController::class, 'store']);
+        Route::post('push/unsubscribe', [PushSubscriptionController::class, 'destroy']);
+
         // Reportes PDF
         Route::get('reportes/pdf/boletin/{id}', [PdfReportController::class, 'downloadBoletin']);
         Route::get('reportes/pdf/kardex/{id}',  [PdfReportController::class, 'downloadKardex']);
@@ -81,6 +87,7 @@ Route::prefix('v1')->group(function () {
         Route::get('reportes/pdf/constancia/{id}', [PdfReportController::class, 'downloadConstancia']);
         Route::get('reportes/pdf/asistencia/{id_asignacion}', [PdfReportController::class, 'downloadAsistencia']);
         Route::get('reportes/pdf/asistencia-final/{id_asignacion}', [PdfReportController::class, 'downloadAsistenciaFinal']);
+        Route::get('reportes/pdf/listado-alumnos/{id_asignacion}', [PdfReportController::class, 'downloadListadoAlumnos']);
         Route::get('reportes/rendimiento', [PdfReportController::class, 'rendimientoPorPeriodo'])->middleware('permiso:reportes');
 
         // Archivos - upload
@@ -147,6 +154,8 @@ Route::prefix('v1')->group(function () {
 
         // API Resources
         Route::apiResource('usuarios',               UsuarioController::class)->middleware('permiso:usuarios');
+        Route::get('usuarios/{usuario}/permisos',    [UsuarioController::class, 'permisos'])->middleware('permiso:permisos');
+        Route::put('usuarios/{usuario}/permisos',    [UsuarioController::class, 'syncPermisosPropios'])->middleware('permiso:permisos');
         Route::apiResource('roles',                  RolController::class)->parameters(['roles' => 'rol'])->middleware('permiso:roles');
         Route::post('roles/{rol}/permisos',          [RolController::class, 'syncPermisos'])->middleware('permiso:roles');
         Route::post('permisos/seed',                 [PermisoController::class, 'seedDefaults'])->middleware('permiso:permisos');
@@ -155,7 +164,8 @@ Route::prefix('v1')->group(function () {
         Route::apiResource('carreras',               CarreraController::class)->middleware('permiso:carreras');
         Route::apiResource('periodos-academicos',    PeriodoAcademicoController::class)->parameters(['periodos-academicos' => 'periodo_academico'])->middleware('permiso:periodos');
         Route::post('periodos-academicos/{periodo_academico}/cerrar', [PeriodoAcademicoController::class, 'cerrar'])->middleware('permiso:periodos');
-        Route::apiResource('configuraciones',         ConfiguracionController::class)->parameters(['configuraciones' => 'configuracion'])->middleware('permiso:configuracion');
+        Route::get('configuraciones',                 [ConfiguracionController::class, 'index'])->middleware('permiso:configuracion');
+        Route::put('configuraciones',                 [ConfiguracionController::class, 'update'])->middleware('permiso:configuracion');
         Route::apiResource('archivos',               ArchivoController::class)->middleware('permiso:archivos');
         Route::apiResource('notificaciones',          NotificacionController::class)->parameters(['notificaciones' => 'notificacion'])->middleware('permiso:notificaciones');
         Route::apiResource('bitacoras',              BitacoraController::class)->middleware('permiso:bitacoras');
@@ -171,8 +181,10 @@ Route::prefix('v1')->group(function () {
         Route::apiResource('pensums',                PensumController::class)->middleware('permiso:pensum');
         Route::apiResource('asignaciones',           AsignacionController::class)->parameters(['asignaciones' => 'asignacion'])->middleware('permiso:asignaciones');
         Route::apiResource('tareas',                 TareaController::class)->middleware('permiso:tareas');
+        Route::get('inscripciones/resumen-alumnos', [InscripcionController::class, 'resumenPorAlumno'])->middleware('permiso:inscripciones');
         Route::apiResource('inscripciones',          InscripcionController::class)->parameters(['inscripciones' => 'inscripcion'])->middleware('permiso:inscripciones');
         Route::post('inscripciones/{inscripcion}/retirar', [InscripcionController::class, 'retirar'])->middleware('permiso:inscripciones');
+        Route::post('inscripciones/por-grado', [InscripcionController::class, 'porGrado'])->middleware('permiso:inscripciones');
         Route::apiResource('horarios',               HorarioDetalleController::class)->parameters(['horarios' => 'horario_detalle'])->middleware('permiso:horarios');
         Route::apiResource('evaluaciones',           EvaluacionController::class)->parameters(['evaluaciones' => 'evaluacion'])->middleware('permiso:evaluaciones');
         Route::apiResource('entregas-tarea',         EntregaTareaController::class)->parameters(['entregas-tarea' => 'entrega_tarea'])->middleware('permiso:entregas');

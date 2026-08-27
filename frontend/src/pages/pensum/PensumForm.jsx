@@ -51,7 +51,8 @@ export default function PensumForm() {
 
   const handleSubmit = async (e) => {
     e.preventDefault()
-    const { id_carrera, cursos } = form
+    const { cursos } = form
+    const id_carrera = form.id_carrera === '' ? null : form.id_carrera
     const id_grado = form.id_grado === '' ? null : form.id_grado
     const seleccionados = Object.entries(cursos).filter(([, v]) => v.checked)
     setSaving(true)
@@ -98,7 +99,10 @@ export default function PensumForm() {
     <div className="max-w-2xl mx-auto">
       <h1 className="mb-6 text-3xl font-bold text-neutral-800 dark:text-neutral-100">{isEdit ? 'Editar' : 'Nuevo'} Pensum</h1>
       <form onSubmit={handleSubmit} className="rounded-xl bg-white p-6 shadow-4 space-y-4 dark:bg-surface-dark">
-        <FormInput label="Carrera" name="id_carrera" type="select" value={form.id_carrera} onChange={handleChange} required options={carreras} />
+        <div>
+          <FormInput label="Carrera" name="id_carrera" type="select" value={form.id_carrera} onChange={handleChange} options={carreras} />
+          <p className="mt-1 text-xs text-neutral-500 dark:text-neutral-400">Dejar en "Seleccionar..." aplica el pensum a cualquier carrera (ej. Básico, que todavía no tiene carrera).</p>
+        </div>
         <FormInput label="Grado" name="id_grado" type="select" value={form.id_grado} onChange={handleChange} options={grados} />
         <div>
           <label className={input.label}>Cursos (una carrera y grado pueden tener varios cursos, marca cuáles son obligatorios)</label>

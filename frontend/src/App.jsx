@@ -4,6 +4,7 @@ import ProtectedRoute from './components/ProtectedRoute'
 import Layout from './components/Layout'
 
 const Login = lazy(() => import('./pages/Login'))
+const Mantenimiento = lazy(() => import('./pages/Mantenimiento'))
 const ChangePassword = lazy(() => import('./pages/ChangePassword'))
 const Dashboard = lazy(() => import('./pages/Dashboard'))
 
@@ -63,6 +64,7 @@ const AuditoriaList = lazy(() => import('./pages/admin/AuditoriaList'))
 const LogList = lazy(() => import('./pages/admin/LogList'))
 
 const ReporteActas = lazy(() => import('./pages/reportes/ReporteActas'))
+const ReporteListadoAlumnos = lazy(() => import('./pages/reportes/ReporteListadoAlumnos'))
 const ReporteNotas = lazy(() => import('./pages/reportes/ReporteNotas'))
 const ReporteConstancias = lazy(() => import('./pages/reportes/ReporteConstancias'))
 const ReporteRendimiento = lazy(() => import('./pages/reportes/ReporteRendimiento'))
@@ -71,7 +73,7 @@ const RolList = lazy(() => import('./pages/roles/RolList'))
 const RolForm = lazy(() => import('./pages/roles/RolForm'))
 const PermisoList = lazy(() => import('./pages/permisos/PermisoList'))
 const PermisoForm = lazy(() => import('./pages/permisos/PermisoForm'))
-const ConfiguracionList = lazy(() => import('./pages/configuracion/ConfiguracionList'))
+const PermisoUsuario = lazy(() => import('./pages/permisos/PermisoUsuario'))
 const ConfiguracionForm = lazy(() => import('./pages/configuracion/ConfiguracionForm'))
 const NotificacionList = lazy(() => import('./pages/notificaciones/NotificacionList'))
 const ReporteGeneradoList = lazy(() => import('./pages/reportes/ReporteGeneradoList'))
@@ -97,6 +99,7 @@ export default function App() {
     <Suspense fallback={<PageLoader />}>
       <Routes>
         <Route path="/login" element={<Login />} />
+        <Route path="/mantenimiento" element={<Mantenimiento />} />
         <Route path="/cambiar-contrasena" element={
           <ProtectedRoute>
             <ChangePassword />
@@ -213,17 +216,17 @@ export default function App() {
           } />
 
           <Route path="carreras" element={
-            <RouteGuard roles={['admin', 'director']}>
+            <RouteGuard roles={['admin', 'director', 'secretaria']}>
               <CarreraList />
             </RouteGuard>
           } />
           <Route path="carreras/nuevo" element={
-            <RouteGuard roles={['admin', 'director']}>
+            <RouteGuard roles={['admin', 'director', 'secretaria']}>
               <CarreraForm />
             </RouteGuard>
           } />
           <Route path="carreras/:id" element={
-            <RouteGuard roles={['admin', 'director']}>
+            <RouteGuard roles={['admin', 'director', 'secretaria']}>
               <CarreraForm />
             </RouteGuard>
           } />
@@ -272,17 +275,17 @@ export default function App() {
           } />
 
           <Route path="periodos" element={
-            <RouteGuard roles={['admin', 'director']}>
+            <RouteGuard roles={['admin', 'director', 'secretaria']}>
               <PeriodoList />
             </RouteGuard>
           } />
           <Route path="periodos/nuevo" element={
-            <RouteGuard roles={['admin', 'director']}>
+            <RouteGuard roles={['admin', 'director', 'secretaria']}>
               <PeriodoForm />
             </RouteGuard>
           } />
           <Route path="periodos/:id" element={
-            <RouteGuard roles={['admin', 'director']}>
+            <RouteGuard roles={['admin', 'director', 'secretaria']}>
               <PeriodoForm />
             </RouteGuard>
           } />
@@ -373,22 +376,27 @@ export default function App() {
           } />
 
           <Route path="reportes/actas" element={
-            <RouteGuard roles={['admin', 'director']}>
+            <RouteGuard roles={['admin', 'director', 'secretaria']}>
               <ReporteActas />
             </RouteGuard>
           } />
+          <Route path="reportes/listado-alumnos" element={
+            <RouteGuard roles={['admin', 'director', 'secretaria']}>
+              <ReporteListadoAlumnos />
+            </RouteGuard>
+          } />
           <Route path="reportes/notas" element={
-            <RouteGuard roles={['admin', 'director']}>
+            <RouteGuard roles={['admin', 'director', 'secretaria']}>
               <ReporteNotas />
             </RouteGuard>
           } />
           <Route path="reportes/constancias" element={
-            <RouteGuard roles={['admin', 'director']}>
+            <RouteGuard roles={['admin', 'director', 'secretaria']}>
               <ReporteConstancias />
             </RouteGuard>
           } />
           <Route path="reportes/rendimiento" element={
-            <RouteGuard roles={['admin', 'director']}>
+            <RouteGuard roles={['admin', 'director', 'secretaria']}>
               <ReporteRendimiento />
             </RouteGuard>
           } />
@@ -442,18 +450,13 @@ export default function App() {
               <PermisoForm />
             </ProtectedRoute>
           } />
+          <Route path="permisos/usuarios" element={
+            <ProtectedRoute roles={['admin']}>
+              <PermisoUsuario />
+            </ProtectedRoute>
+          } />
 
           <Route path="configuracion" element={
-            <ProtectedRoute roles={['admin']}>
-              <ConfiguracionList />
-            </ProtectedRoute>
-          } />
-          <Route path="configuracion/nuevo" element={
-            <ProtectedRoute roles={['admin']}>
-              <ConfiguracionForm />
-            </ProtectedRoute>
-          } />
-          <Route path="configuracion/:id" element={
             <ProtectedRoute roles={['admin']}>
               <ConfiguracionForm />
             </ProtectedRoute>
@@ -461,7 +464,7 @@ export default function App() {
 
           <Route path="notificaciones" element={<NotificacionList />} />
           <Route path="reportes-generados" element={
-            <ProtectedRoute roles={['admin', 'director']}>
+            <ProtectedRoute roles={['admin', 'director', 'secretaria']}>
               <ReporteGeneradoList />
             </ProtectedRoute>
           } />

@@ -40,3 +40,7 @@ backend/vendor/
 # Archivos compilados de frontend
 frontend/dist/
 frontend/node_modules/
+
+# Respaldos de base de datos (datos reales de alumnos/usuarios — nunca a git)
+backups/
+*.sql

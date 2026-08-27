@@ -18,6 +18,8 @@ class UserManagementController extends Controller
             'password' => ['required', 'string', 'max:255', new SecurePassword],
             'rol' => 'required|string|in:admin,director,secretaria',
             'estado' => 'nullable|string|max:50',
+            'nombre' => 'required|string|max:100',
+            'apellido' => 'required|string|max:100',
         ]);
 
         return DB::transaction(function () use ($validated) {
@@ -25,6 +27,8 @@ class UserManagementController extends Controller
                 'username' => $validated['username'],
                 'password' => bcrypt($validated['password']),
                 'estado' => $validated['estado'] ?? 'activo',
+                'nombre' => $validated['nombre'],
+                'apellido' => $validated['apellido'],
             ]);
 
             $rol = Rol::where('nombre', $validated['rol'])->firstOrFail();

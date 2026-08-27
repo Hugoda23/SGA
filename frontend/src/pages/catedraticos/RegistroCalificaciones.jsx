@@ -117,7 +117,10 @@ export default function RegistroCalificaciones() {
       key: `zona-${z.id_zona}`,
       nombre: z.nombre,
       puntos: parseFloat(z.puntos) || 0,
-      actividades: z.evaluaciones || [],
+      actividades: [
+        ...(z.evaluaciones || []).map(ev => ({ ...ev, tipo: 'evaluacion', key: `ev-${ev.id_evaluacion}` })),
+        ...(z.tareas || []).map(t => ({ ...t, tipo: 'tarea', key: `t-${t.id_tarea}`, porcentaje: t.puntos })),
+      ],
       esZona: true,
     })),
   ]
@@ -126,16 +129,18 @@ export default function RegistroCalificaciones() {
       key: 'sin-zona',
       nombre: 'Sin zona',
       puntos: evaluaciones_sin_zona.reduce((acc, ev) => acc + (parseFloat(ev.porcentaje) || 0), 0),
-      actividades: evaluaciones_sin_zona,
+      actividades: evaluaciones_sin_zona.map(ev => ({ ...ev, tipo: 'evaluacion', key: `ev-${ev.id_evaluacion}` })),
       esZona: false,
     })
   }
 
   const numeroColumnas = 1 + grupos.reduce((acc, g) => acc + g.actividades.length + 1, 0) + 1
 
-  const totalZona = (idInscripcion, grupo) =>
-    grupo.actividades.reduce((acc, ev) => {
-      const val = parseFloat(notasTemp[idInscripcion]?.[ev.id_evaluacion])
+  const totalZona = (alumno, grupo) =>
+    grupo.actividades.reduce((acc, act) => {
+      const val = act.tipo === 'tarea'
+        ? parseFloat(alumno.notas_tareas?.[act.id_tarea])
+        : parseFloat(notasTemp[alumno.id_inscripcion]?.[act.id_evaluacion])
       return acc + (isNaN(val) ? 0 : val)
     }, 0)
 
@@ -218,10 +223,13 @@ export default function RegistroCalificaciones() {
                   <th className={`${tbl.th} font-normal text-neutral-400`}></th>
                   {grupos.map(g => (
                     <Fragment key={g.key}>
-                      {g.actividades.map(ev => (
-                        <th key={ev.id_evaluacion} className={`${tbl.th} text-center font-normal`}>
-                          <div className="font-semibold text-neutral-700 dark:text-neutral-200">{ev.nombre}</div>
-                          <div className="mt-1 text-xs text-primary">{ev.porcentaje} pts</div>
+                      {g.actividades.map(act => (
+                        <th key={act.key} className={`${tbl.th} text-center font-normal`}>
+                          <div className="font-semibold text-neutral-700 dark:text-neutral-200">{act.nombre}</div>
+                          <div className="mt-1 text-xs text-primary">{act.porcentaje} pts</div>
+                          {act.tipo === 'tarea' && (
+                            <div className="mt-0.5 text-[10px] font-bold uppercase tracking-wide text-neutral-400">Tarea (se califica en Entregas)</div>
+                          )}
                         </th>
                       ))}
                       <th className={`${tbl.th} bg-primary-50/40 text-center font-normal text-primary`}>Total</th>
@@ -243,21 +251,27 @@ export default function RegistroCalificaciones() {
                     </td>
                     {grupos.map(g => (
                       <Fragment key={g.key}>
-                        {g.actividades.map(ev => (
-                          <td key={ev.id_evaluacion} className="p-3 text-center">
-                            <input
-                              type="number"
-                              min="0"
-                              max={ev.porcentaje}
-                              step="0.5"
-                              className="w-16 rounded-lg border border-transparent bg-neutral-100 py-1.5 text-center font-bold text-neutral-700 outline-none transition-all focus:border-primary focus:bg-white focus:ring-1 focus:ring-primary dark:bg-neutral-700/50 dark:text-neutral-200 dark:focus:bg-neutral-800"
-                              value={notasTemp[alumno.id_inscripcion]?.[ev.id_evaluacion] ?? ''}
-                              onChange={(e) => handleNotaChange(alumno.id_inscripcion, ev.id_evaluacion, e.target.value)}
-                            />
+                        {g.actividades.map(act => (
+                          <td key={act.key} className="p-3 text-center">
+                            {act.tipo === 'tarea' ? (
+                              <span className="inline-flex w-16 items-center justify-center rounded-lg bg-neutral-100 py-1.5 font-bold text-neutral-700 dark:bg-neutral-700/50 dark:text-neutral-200">
+                                {alumno.notas_tareas?.[act.id_tarea] ?? '—'}
+                              </span>
+                            ) : (
+                              <input
+                                type="number"
+                                min="0"
+                                max={act.porcentaje}
+                                step="0.5"
+                                className="w-16 rounded-lg border border-transparent bg-neutral-100 py-1.5 text-center font-bold text-neutral-700 outline-none transition-all focus:border-primary focus:bg-white focus:ring-1 focus:ring-primary dark:bg-neutral-700/50 dark:text-neutral-200 dark:focus:bg-neutral-800"
+                                value={notasTemp[alumno.id_inscripcion]?.[act.id_evaluacion] ?? ''}
+                                onChange={(e) => handleNotaChange(alumno.id_inscripcion, act.id_evaluacion, e.target.value)}
+                              />
+                            )}
                           </td>
                         ))}
                         <td className={`bg-primary-50/40 p-3 text-center font-bold text-primary ${g.esZona ? '' : 'opacity-60'}`}>
-                          {totalZona(alumno.id_inscripcion, g).toFixed(1)}
+                          {totalZona(alumno, g).toFixed(1)}
                         </td>
                       </Fragment>
                     ))}

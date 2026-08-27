@@ -22,7 +22,6 @@
         <div><strong>Alumno:</strong> {{ $alumno->nombre }} {{ $alumno->apellido }}</div>
         <div><strong>Carnet:</strong> {{ $alumno->id_alumno }}</div>
         <div><strong>Promedio Global:</strong> {{ $promedio_global }} pts</div>
-        <div><strong>Créditos aprobados:</strong> {{ $creditos_totales }}</div>
     </div>
 
     @foreach($historial as $periodo => $cursos)
@@ -32,7 +31,6 @@
                 <tr>
                     <th>Asignatura</th>
                     <th class="center">Calificación</th>
-                    <th class="center">Créditos</th>
                     <th class="center">Resultado</th>
                 </tr>
             </thead>
@@ -41,7 +39,6 @@
                 <tr>
                     <td>{{ $curso['nombre'] }}</td>
                     <td class="center">{{ $curso['nota'] ?? '—' }}</td>
-                    <td class="center">{{ $curso['creditos'] }}</td>
                     <td class="center">
                         @if($curso['resultado'] === 'Aprobado')
                             <span class="sga-badge sga-badge-success">APROBADO</span>

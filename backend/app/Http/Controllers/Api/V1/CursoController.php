@@ -20,7 +20,6 @@ class CursoController extends Controller
         $validated = $request->validate([
             'nombre_curso' => 'required|string|max:150',
             'descripcion' => 'nullable|string',
-            'creditos' => 'nullable|integer|min:0|max:20',
             'carreras' => 'nullable|array',
             'carreras.*' => 'exists:carrera,id_carrera',
         ]);
@@ -28,7 +27,6 @@ class CursoController extends Controller
         $curso = Curso::create([
             'nombre_curso' => $validated['nombre_curso'],
             'descripcion' => $validated['descripcion'] ?? null,
-            'creditos' => $validated['creditos'] ?? null,
         ]);
 
         $curso->carreras()->sync($validated['carreras'] ?? []);
@@ -46,7 +44,6 @@ class CursoController extends Controller
         $validated = $request->validate([
             'nombre_curso' => 'sometimes|string|max:150',
             'descripcion' => 'nullable|string',
-            'creditos' => 'nullable|integer|min:0|max:20',
             'carreras' => 'nullable|array',
             'carreras.*' => 'exists:carrera,id_carrera',
         ]);
@@ -54,7 +51,6 @@ class CursoController extends Controller
         $curso->update([
             'nombre_curso' => $validated['nombre_curso'] ?? $curso->nombre_curso,
             'descripcion' => array_key_exists('descripcion', $validated) ? $validated['descripcion'] : $curso->descripcion,
-            'creditos' => array_key_exists('creditos', $validated) ? $validated['creditos'] : $curso->creditos,
         ]);
 
         if (array_key_exists('carreras', $validated)) {

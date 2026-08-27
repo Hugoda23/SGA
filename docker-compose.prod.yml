@@ -19,6 +19,30 @@
 #   docker compose -f docker-compose.prod.yml --env-file .env.production up -d db backend webserver
 # ============================================================
 
+# Variables de entorno compartidas por los tres contenedores que corren
+# código Laravel (backend, queue-worker, scheduler) — deben ver la misma
+# configuración de BD, Sanctum y VAPID.
+x-backend-env: &backend-env
+  APP_NAME: "${APP_NAME:-Instituto Florencio Carrascoza}"
+  APP_ENV: production
+  APP_KEY: "${APP_KEY}"
+  APP_DEBUG: "false"
+  APP_URL: "${APP_URL}"
+  LOG_LEVEL: "${LOG_LEVEL:-warning}"
+  DB_CONNECTION: pgsql
+  DB_HOST: db
+  DB_PORT: 5432
+  DB_DATABASE: ${DB_DATABASE}
+  DB_USERNAME: ${DB_USERNAME}
+  DB_PASSWORD: ${DB_PASSWORD}
+  CORS_ALLOWED_ORIGINS: "${CORS_ALLOWED_ORIGINS}"
+  SANCTUM_STATEFUL_DOMAINS: "${SANCTUM_STATEFUL_DOMAINS}"
+  SANCTUM_EXPIRATION: "${SANCTUM_EXPIRATION:-43200}"
+  VAPID_PUBLIC_KEY: "${VAPID_PUBLIC_KEY}"
+  VAPID_PRIVATE_KEY: "${VAPID_PRIVATE_KEY}"
+  VAPID_SUBJECT: "${VAPID_SUBJECT}"
+  QUEUE_CONNECTION: database
+
 services:
   db:
     image: postgres:16-alpine
@@ -53,21 +77,7 @@ services:
       # en public/storage — evita depender de un symlink cruzado entre
       # contenedores distintos.
       - backend_storage:/var/www/html/storage/app/public
-    environment:
-      APP_NAME: "SGA"
-      APP_ENV: production
-      APP_KEY: "${APP_KEY}"
-      APP_DEBUG: "false"
-      APP_URL: "${APP_URL}"
-      LOG_LEVEL: "${LOG_LEVEL:-warning}"
-      DB_CONNECTION: pgsql
-      DB_HOST: db
-      DB_PORT: 5432
-      DB_DATABASE: ${DB_DATABASE}
-      DB_USERNAME: ${DB_USERNAME}
-      DB_PASSWORD: ${DB_PASSWORD}
-      CORS_ALLOWED_ORIGINS: "${CORS_ALLOWED_ORIGINS}"
-      SANCTUM_STATEFUL_DOMAINS: "${SANCTUM_STATEFUL_DOMAINS}"
+    environment: *backend-env
     command: >
       sh -c "php artisan migrate --force &&
              php artisan config:cache &&
@@ -77,6 +87,49 @@ services:
     depends_on:
       db:
         condition: service_healthy
+    networks:
+      - sga_network
+
+  # Procesa la cola (envío de notificaciones push, jobs en general).
+  # Sin este contenedor, todo lo despachado con ShouldQueue se queda
+  # sentado en la tabla "jobs" y nunca se envía.
+  queue-worker:
+    build:
+      context: ./backend
+      dockerfile: ../docker/php/Dockerfile.prod
+    container_name: sga_queue_worker_prod
+    restart: unless-stopped
+    working_dir: /var/www/html
+    volumes:
+      - backend_storage:/var/www/html/storage/app/public
+    environment: *backend-env
+    command: sh -c "php artisan queue:work --sleep=3 --tries=3 --max-time=3600"
+    depends_on:
+      db:
+        condition: service_healthy
+      backend:
+        condition: service_started
+    networks:
+      - sga_network
+
+  # Dispara el scheduler de Laravel (routes/console.php) cada minuto —
+  # de ahí sale "sga:generar-notificaciones" a las 6:00 AM.
+  scheduler:
+    build:
+      context: ./backend
+      dockerfile: ../docker/php/Dockerfile.prod
+    container_name: sga_scheduler_prod
+    restart: unless-stopped
+    working_dir: /var/www/html
+    volumes:
+      - backend_storage:/var/www/html/storage/app/public
+    environment: *backend-env
+    command: sh -c "while :; do php artisan schedule:run --no-interaction; sleep 60; done"
+    depends_on:
+      db:
+        condition: service_healthy
+      backend:
+        condition: service_started
     networks:
       - sga_network
 
@@ -109,6 +162,7 @@ services:
       target: build
       args:
         VITE_API_URL: ${VITE_API_URL}
+        VITE_VAPID_PUBLIC_KEY: ${VAPID_PUBLIC_KEY}
     container_name: sga_frontend_build
     volumes:
       - frontend_dist:/app/dist

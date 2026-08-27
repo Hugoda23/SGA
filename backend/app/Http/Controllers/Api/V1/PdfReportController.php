@@ -181,7 +181,6 @@ class PdfReportController extends Controller
         $historial = [];
         $suma = 0;
         $contadas = 0;
-        $creditosAprobados = 0;
 
         foreach ($alumno->inscripciones as $inscripcion) {
             $asignacion = $inscripcion->asignacion;
@@ -192,21 +191,16 @@ class PdfReportController extends Controller
             $periodo = $asignacion->periodo?->nombre ?? 'Sin periodo';
             $calFinal = $inscripcion->calificacionesFinales->first();
             $nota = $calFinal?->nota_final !== null ? (float) $calFinal->nota_final : null;
-            $creditos = $asignacion->curso?->creditos;
 
             $historial[$periodo][] = [
                 'nombre' => $asignacion->curso?->nombre_curso ?? '—',
                 'nota' => $nota,
-                'creditos' => $creditos !== null ? $creditos : '—',
                 'resultado' => $nota === null ? 'Sin nota' : ($nota >= $notaMinima ? 'Aprobado' : 'Reprobado'),
             ];
 
             if ($nota !== null) {
                 $suma += $nota;
                 $contadas++;
-                if ($nota >= $notaMinima && $creditos !== null) {
-                    $creditosAprobados += $creditos;
-                }
             }
         }
 
@@ -223,7 +217,6 @@ class PdfReportController extends Controller
             'hash' => $hash,
             'historial' => $historial,
             'promedio_global' => $promedio_global,
-            'creditos_totales' => $creditosAprobados,
         ];
 
         $pdf = Pdf::loadView('pdf.kardex', $data);
@@ -548,6 +541,54 @@ class PdfReportController extends Controller
 
         $pdf = Pdf::loadView('pdf.asistencia_final', $data);
         return $pdf->download("asistencia_final_{$id_asignacion}.pdf");
+    }
+
+    /**
+     * GET /v1/reportes/pdf/listado-alumnos/{id_asignacion}
+     * Listado de los alumnos activos de una asignación (curso + grado +
+     * sección + periodo). Accesible al catedrático dueño del curso o a
+     * personal administrativo (ver VerificaPropietarioCurso).
+     */
+    public function downloadListadoAlumnos(Request $request, $id_asignacion)
+    {
+        $this->verificarCatedratico($request, $id_asignacion);
+        $this->logReporte('listado_alumnos');
+
+        $asignacion = Asignacion::with([
+            'curso',
+            'grado',
+            'seccion',
+            'periodo',
+            'catedratico',
+            'inscripciones' => fn ($q) => $q->where('estado', 'activo'),
+            'inscripciones.alumno.usuario',
+        ])->findOrFail($id_asignacion);
+
+        $alumnos = $asignacion->inscripciones
+            ->sortBy(fn ($ins) => $ins->alumno?->apellido . ' ' . $ins->alumno?->nombre)
+            ->values()
+            ->map(fn ($ins) => [
+                'nombre' => $ins->alumno ? "{$ins->alumno->nombre} {$ins->alumno->apellido}" : '—',
+                'codigo' => $ins->alumno?->codigo_mineduc ?? '—',
+                'clave' => $ins->alumno?->usuario?->username ?? '—',
+            ]);
+
+        $data = [
+            'institucion' => $this->institucionNombre(),
+            'logoBase64' => $this->logoBase64(),
+            'tituloDoc' => 'Listado de Alumnos',
+            'curso' => $asignacion->curso?->nombre_curso ?? '—',
+            'grado' => $asignacion->grado?->nombre ?? '—',
+            'seccion' => $asignacion->seccion?->nombre ?? '—',
+            'periodo' => $asignacion->periodo?->nombre ?? '—',
+            'catedratico' => $asignacion->catedratico ? "{$asignacion->catedratico->nombre} {$asignacion->catedratico->apellido}" : 'Pendiente de asignar',
+            'alumnos' => $alumnos,
+            'usuario' => auth()->user()?->username ?? 'Sistema',
+            'fecha_generacion' => Carbon::now()->locale('es')->isoFormat('D [de] MMMM [de] YYYY [a las] HH:mm'),
+        ];
+
+        $pdf = Pdf::loadView('pdf.listado_alumnos', $data);
+        return $pdf->download("listado_alumnos_asignacion_{$id_asignacion}.pdf");
     }
 
     public function downloadAvanceProgramatico(Request $request, $id_asignacion)

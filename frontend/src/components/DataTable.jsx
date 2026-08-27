@@ -75,6 +75,9 @@ export default function DataTable({ columns, data, onEdit, onDelete, title, onAd
     return resultado
   })()
 
+  const hasActions = !!(onEdit || onDelete || rowActions?.length)
+  const colSpan = columns.length + (hasActions ? 1 : 0)
+
   const handleConfirmDelete = async () => {
     const row = confirmRow
     setConfirmRow(null)
@@ -146,13 +149,13 @@ export default function DataTable({ columns, data, onEdit, onDelete, title, onAd
                     {col.label}
                   </th>
                 ))}
-                <th className={`${tbl.th} text-right`}>Acciones</th>
+                {hasActions && <th className={`${tbl.th} text-right`}>Acciones</th>}
               </tr>
             </thead>
             <tbody className="divide-y divide-neutral-100 dark:divide-neutral-700">
               {loading ? (
                 <tr>
-                  <td colSpan={columns.length + 1} className="px-4 py-12 text-center">
+                  <td colSpan={colSpan} className="px-4 py-12 text-center">
                     <div className="flex flex-col items-center gap-3">
                       <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary-100 border-t-primary"></div>
                       <span className="font-semibold text-neutral-500">Cargando datos...</span>
@@ -161,7 +164,7 @@ export default function DataTable({ columns, data, onEdit, onDelete, title, onAd
                 </tr>
               ) : filtered.length === 0 ? (
                 <tr>
-                  <td colSpan={columns.length + 1} className="px-4 py-12 text-center">
+                  <td colSpan={colSpan} className="px-4 py-12 text-center">
                     <div className="flex flex-col items-center justify-center py-8">
                       <svg className="mb-4 h-12 w-12 text-neutral-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" />
@@ -179,41 +182,43 @@ export default function DataTable({ columns, data, onEdit, onDelete, title, onAd
                         {col.render ? col.render(row) : row[col.key] ?? '-'}
                       </td>
                     ))}
-                    <td className="whitespace-nowrap px-4 py-3 text-right">
-                      <div className="flex justify-end gap-2">
-                        {onEdit && (
-                          <button
-                            type="button"
-                            onClick={() => onEdit(row)}
-                            className="rounded-lg bg-amber-50 px-3 py-1.5 text-xs font-bold text-warning transition-colors hover:bg-warning hover:text-white dark:bg-amber-100/10"
-                          >
-                            Editar
-                          </button>
-                        )}
-                        {rowActions?.map((action) => {
-                          if (action.show && !action.show(row)) return null
-                          return (
+                    {hasActions && (
+                      <td className="whitespace-nowrap px-4 py-3 text-right">
+                        <div className="flex justify-end gap-2">
+                          {onEdit && (
                             <button
-                              key={action.label}
                               type="button"
-                              onClick={() => action.onClick(row)}
-                              className={action.className}
+                              onClick={() => onEdit(row)}
+                              className="rounded-lg bg-amber-50 px-3 py-1.5 text-xs font-bold text-warning transition-colors hover:bg-warning hover:text-white dark:bg-amber-100/10"
                             >
-                              {action.label}
+                              Editar
                             </button>
-                          )
-                        })}
-                        {onDelete && (
-                          <button
-                            type="button"
-                            onClick={() => setConfirmRow(row)}
-                            className="rounded-lg bg-danger-50 px-3 py-1.5 text-xs font-bold text-danger transition-colors hover:bg-danger hover:text-white dark:bg-danger-100/10"
-                          >
-                            Eliminar
-                          </button>
-                        )}
-                      </div>
-                    </td>
+                          )}
+                          {rowActions?.map((action) => {
+                            if (action.show && !action.show(row)) return null
+                            return (
+                              <button
+                                key={action.label}
+                                type="button"
+                                onClick={() => action.onClick(row)}
+                                className={action.className}
+                              >
+                                {action.label}
+                              </button>
+                            )
+                          })}
+                          {onDelete && (
+                            <button
+                              type="button"
+                              onClick={() => setConfirmRow(row)}
+                              className="rounded-lg bg-danger-50 px-3 py-1.5 text-xs font-bold text-danger transition-colors hover:bg-danger hover:text-white dark:bg-danger-100/10"
+                            >
+                              Eliminar
+                            </button>
+                          )}
+                        </div>
+                      </td>
+                    )}
                   </tr>
                 ))
               )}

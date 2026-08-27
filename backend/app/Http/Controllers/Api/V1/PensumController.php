@@ -17,7 +17,7 @@ class PensumController extends Controller
     public function store(Request $request)
     {
         $validated = $request->validate([
-            'id_carrera' => 'required|exists:carrera,id_carrera',
+            'id_carrera' => 'nullable|exists:carrera,id_carrera',
             'id_curso' => 'required|exists:curso,id_curso',
             'id_grado' => 'nullable|exists:grado,id_grado',
             'obligatorio' => 'boolean',
@@ -44,7 +44,7 @@ class PensumController extends Controller
     public function update(Request $request, Pensum $pensum)
     {
         $validated = $request->validate([
-            'id_carrera' => 'sometimes|exists:carrera,id_carrera',
+            'id_carrera' => 'sometimes|nullable|exists:carrera,id_carrera',
             'id_curso' => 'sometimes|exists:curso,id_curso',
             'id_grado' => 'nullable|exists:grado,id_grado',
             'obligatorio' => 'boolean',

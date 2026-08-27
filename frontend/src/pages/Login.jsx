@@ -1,6 +1,7 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
+import api from '../api/axios'
 import { btn, input } from '../lib/twClasses'
 import logo from '../assets/logo.jpg'
 
@@ -17,8 +18,13 @@ export default function Login() {
   const [showPassword, setShowPassword] = useState(false)
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
+  const [estadoSistema, setEstadoSistema] = useState(null)
   const { login } = useAuth()
   const navigate = useNavigate()
+
+  useEffect(() => {
+    api.get('/v1/sistema/estado').then((r) => setEstadoSistema(r.data)).catch(() => {})
+  }, [])
 
   const handleSubmit = async (e) => {
     e.preventDefault()
@@ -45,9 +51,14 @@ export default function Login() {
       <div className="w-full max-w-md rounded-xl border-none bg-white p-8 shadow-5 dark:bg-surface-dark">
         <div className="mb-8 text-center">
           <img src={logo} alt="Instituto Florencio Carrascoza" className="mx-auto mb-4 h-16 w-16 rounded-lg object-contain shadow-primary-3" />
-          <h1 className="text-3xl font-bold text-neutral-800 dark:text-neutral-100">SGA</h1>
-          <p className="mt-1 text-neutral-500 dark:text-neutral-400">Sistema de Gestión Académica</p>
+          <h1 className="text-2xl font-bold text-neutral-800 dark:text-neutral-100">Instituto Florencio Carrascoza</h1>
         </div>
+
+        {estadoSistema?.mantenimiento_activo && (
+          <div className="mb-6 rounded-lg border border-warning-200 bg-warning-50 px-4 py-3 text-sm font-semibold text-warning-800 dark:border-warning-900/50 dark:bg-warning-900/20 dark:text-warning-300">
+            Sistema en mantenimiento: {estadoSistema.mantenimiento_mensaje}
+          </div>
+        )}
 
         <div className="mb-6 grid grid-cols-3 gap-2">
           {tipos.map((t) => (
@@ -122,6 +133,10 @@ export default function Login() {
             {loading ? 'Ingresando...' : 'Ingresar'}
           </button>
         </form>
+
+        {estadoSistema?.version && (
+          <p className="mt-6 text-center text-xs font-semibold text-neutral-400">v{estadoSistema.version}</p>
+        )}
       </div>
     </div>
   )

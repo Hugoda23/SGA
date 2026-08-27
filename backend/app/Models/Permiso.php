@@ -31,6 +31,13 @@ class Permiso extends Model
     {
         $modulos = [
             'dashboard'     => ['ver'],
+            // Ver/usar el sistema mientras está en modo mantenimiento (ver
+            // CheckMantenimiento). El rol admin lo tiene siempre (incluido
+            // en 'all'); para probar algo como otro rol durante
+            // mantenimiento sin abrirle el sistema a todo el mundo,
+            // otorgáselo puntualmente a esa cuenta desde Permisos por
+            // Usuario.
+            'mantenimiento' => ['ver'],
             'usuarios'      => ['ver', 'crear', 'editar', 'eliminar'],
             'roles'         => ['ver', 'crear', 'editar', 'eliminar', 'asignar'],
             'permisos'      => ['ver', 'crear', 'editar', 'eliminar', 'asignar'],

@@ -60,17 +60,29 @@ export default function PermisoList() {
         onEdit={(row) => navigate(`/permisos/${row.id_permiso}`)}
         onDelete={handleDelete}
         headerExtra={
-          <button
-            type="button"
-            onClick={handleSeedDefaults}
-            disabled={seedLoading}
-            className={btn.secondary}
-          >
-            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-            </svg>
-            {seedLoading ? 'Cargando...' : 'Cargar por defecto'}
-          </button>
+          <>
+            <button
+              type="button"
+              onClick={() => navigate('/permisos/usuarios')}
+              className={btn.outline}
+            >
+              <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+              </svg>
+              Permisos por Usuario
+            </button>
+            <button
+              type="button"
+              onClick={handleSeedDefaults}
+              disabled={seedLoading}
+              className={btn.secondary}
+            >
+              <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+              </svg>
+              {seedLoading ? 'Cargando...' : 'Cargar por defecto'}
+            </button>
+          </>
         }
       />
 

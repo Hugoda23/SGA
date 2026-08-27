@@ -23,6 +23,22 @@ function CursoCard({ asignacion }) {
     ? { label: `${asignacion.tareas_pendientes} pendientes`, color: badge.warning }
     : { label: 'Al día', color: badge.success }
 
+  const handleListadoPDF = async () => {
+    try {
+      const response = await api.get(`/v1/reportes/pdf/listado-alumnos/${asignacion.id_asignacion}`, { responseType: 'blob' })
+      const url = window.URL.createObjectURL(new Blob([response.data]))
+      const link = document.createElement('a')
+      link.href = url
+      link.setAttribute('download', `listado_alumnos_${asignacion.id_asignacion}.pdf`)
+      document.body.appendChild(link)
+      link.click()
+      link.remove()
+      window.URL.revokeObjectURL(url)
+    } catch (err) {
+      console.error(err)
+    }
+  }
+
   return (
     <div className="group flex flex-col overflow-hidden rounded-xl bg-white shadow-4 transition-all duration-300 hover:-translate-y-1 dark:bg-surface-dark">
       <div className="border-b border-primary-100/50 bg-primary-50 p-6 dark:border-primary-900/50 dark:bg-primary-900/20">
@@ -75,9 +91,15 @@ function CursoCard({ asignacion }) {
           >
             Asistencia
           </button>
-          <button 
+          <button
+            onClick={handleListadoPDF}
+            className={`${btn.outline} w-full`}
+          >
+            Listado PDF
+          </button>
+          <button
             onClick={() => navigate(`/configuracion-curso/${asignacion.id_asignacion}`)}
-            className={`${btn.neutral} col-span-2 w-full`}
+            className={`${btn.neutral} w-full`}
           >
             Configuración
           </button>

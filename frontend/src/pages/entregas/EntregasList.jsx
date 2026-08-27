@@ -77,8 +77,8 @@ export default function EntregasList() {
       await cargarDetalle(id_tarea)
       fetchCursos()
       setAlertMessage('Calificación guardada')
-    } catch {
-      setAlertMessage('Error al calificar')
+    } catch (err) {
+      setAlertMessage(err.response?.data?.errors?.calificacion?.[0] || err.response?.data?.message || 'Error al calificar')
     } finally {
       setCalificando(null)
     }
@@ -302,10 +302,16 @@ export default function EntregasList() {
                                                 type="number"
                                                 min="0"
                                                 max={t.puntos !== null && t.puntos !== undefined ? t.puntos : 100}
-                                                step="0.01"
+                                                step="0.5"
                                                 className="w-16 rounded-lg border border-transparent bg-neutral-100 py-1.5 text-center text-xs font-bold text-neutral-700 outline-none transition-all focus:border-primary focus:bg-white focus:ring-1 focus:ring-primary dark:bg-neutral-700/50 dark:text-neutral-200 dark:focus:bg-neutral-800"
                                                 value={califValues[a.entrega?.id_entrega] ?? ''}
-                                                onChange={(e) => setCalifValues({ ...califValues, [a.entrega.id_entrega]: e.target.value })}
+                                                onChange={(e) => {
+                                                  const raw = e.target.value
+                                                  const max = t.puntos !== null && t.puntos !== undefined ? t.puntos : 100
+                                                  const num = parseFloat(raw)
+                                                  const valor = raw === '' || Number.isNaN(num) ? raw : Math.min(Math.max(num, 0), max)
+                                                  setCalifValues({ ...califValues, [a.entrega.id_entrega]: valor })
+                                                }}
                                               />
                                             ) : <span className="text-xs text-neutral-300">—</span>}
                                           </td>

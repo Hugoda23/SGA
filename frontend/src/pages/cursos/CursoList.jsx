@@ -78,11 +78,6 @@ export default function CursoList() {
                     CUR-{String(curso.id_curso).padStart(3, '0')}
                   </span>
                   <span className="flex items-center gap-2">
-                    {curso.creditos != null && (
-                      <span className={badge.neutral}>
-                        {curso.creditos} crédito{curso.creditos !== 1 ? 's' : ''}
-                      </span>
-                    )}
                     <span className="text-xs font-bold uppercase tracking-wider text-neutral-400">
                       {curso.carreras?.length
                         ? curso.carreras.map((c) => c.nombre_carrera).join(', ')
@@ -124,6 +119,13 @@ export default function CursoList() {
                     className={`${btn.primary} w-full`}
                   >
                     + Asignar Docente
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => navigate(`/reportes/listado-alumnos?curso=${encodeURIComponent(curso.nombre_curso)}`)}
+                    className={`${btn.outline} w-full`}
+                  >
+                    Listado de Alumnos (PDF)
                   </button>
                   <div className="flex gap-2">
                     <button

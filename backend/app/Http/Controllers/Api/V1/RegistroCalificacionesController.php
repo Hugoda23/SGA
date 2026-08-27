@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Asignacion;
 use App\Models\DetalleCalificacion;
 use App\Models\CalificacionFinal;
+use App\Models\EntregaTarea;
 use App\Models\Evaluacion;
 use App\Models\ZonaEvaluacion;
 use App\Services\CalificacionService;
@@ -30,6 +31,7 @@ class RegistroCalificacionesController extends Controller
             'periodo',
             'evaluaciones',
             'zonas.evaluaciones',
+            'zonas.tareas',
             'inscripciones.alumno',
             'inscripciones.detalleCalificaciones',
             'inscripciones.calificacionesFinales',
@@ -46,7 +48,9 @@ class RegistroCalificacionesController extends Controller
             'unidad_academica' => $ev->unidad_academica,
         ]);
 
-        // Zonas de evaluación con sus actividades
+        // Zonas de evaluación con sus actividades (evaluaciones editables
+        // aquí + tareas, cuya nota se captura en Entrega de Tareas y solo
+        // se refleja aquí de lectura, ver más abajo "notas_tareas").
         $zonas = $asignacion->zonas->map(function ($zona) use ($asignacion) {
             return [
                 'id_zona'     => $zona->id_zona,
@@ -58,6 +62,11 @@ class RegistroCalificacionesController extends Controller
                     'nombre'          => $ev->nombre,
                     'porcentaje'      => $ev->porcentaje,
                     'unidad_academica' => $ev->unidad_academica,
+                ])->values(),
+                'tareas' => $zona->tareas->map(fn($t) => [
+                    'id_tarea' => $t->id_tarea,
+                    'nombre'   => $t->titulo,
+                    'puntos'   => (float) $t->puntos,
                 ])->values(),
             ];
         })->values();
@@ -72,8 +81,16 @@ class RegistroCalificacionesController extends Controller
 
         $totalPuntosZonas = $asignacion->zonas->sum('puntos');
 
+        // Calificaciones de las tareas de zona, por alumno — se capturan en
+        // Entrega de Tareas, no aquí; se precargan todas de una vez para no
+        // hacer una consulta por alumno dentro del map de abajo.
+        $idsTareasEnZonas = $asignacion->zonas->flatMap->tareas->pluck('id_tarea');
+        $entregasPorAlumno = $idsTareasEnZonas->isNotEmpty()
+            ? EntregaTarea::whereIn('id_tarea', $idsTareasEnZonas)->get()->groupBy('id_alumno')
+            : collect();
+
         // Alumnos con sus notas por evaluación
-        $alumnos = $asignacion->inscripciones->map(function ($inscripcion) use ($asignacion) {
+        $alumnos = $asignacion->inscripciones->map(function ($inscripcion) use ($asignacion, $idsTareasEnZonas, $entregasPorAlumno) {
             $notas = [];
             foreach ($asignacion->evaluaciones as $ev) {
                 $detalle = $inscripcion->detalleCalificaciones
@@ -82,6 +99,12 @@ class RegistroCalificacionesController extends Controller
                     'id_detalle' => $detalle?->id_detalle,
                     'nota'       => $detalle?->nota,
                 ];
+            }
+
+            $entregasAlumno = $entregasPorAlumno->get($inscripcion->id_alumno, collect())->keyBy('id_tarea');
+            $notasTareas = [];
+            foreach ($idsTareasEnZonas as $idTarea) {
+                $notasTareas[$idTarea] = $entregasAlumno->get($idTarea)?->calificacion;
             }
 
             $calFinal = $inscripcion->calificacionesFinales->first();
@@ -94,6 +117,7 @@ class RegistroCalificacionesController extends Controller
                     'codigo'    => $inscripcion->alumno?->codigo_mineduc,
                 ],
                 'notas'          => $notas,
+                'notas_tareas'   => $notasTareas,
                 'nota_final'     => $calFinal?->nota_final,
                 'id_calificacion' => $calFinal?->id_calificacion,
             ];

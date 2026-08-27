@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
 use App\Models\Bitacora;
+use App\Models\Configuracion;
 use App\Models\Usuario;
 use App\Rules\SecurePassword;
 use Illuminate\Http\Request;
@@ -57,12 +58,19 @@ class AuthController extends Controller
             ]);
         }
 
-        $usuario->load('roles.permisos', 'alumno', 'catedratico');
+        $usuario->load('roles.permisos', 'permisosPropios', 'alumno', 'catedratico');
         $allowedRoles = $roleMap[$request->tipo];
 
         if (!$usuario->roles->pluck('nombre')->intersect($allowedRoles)->isNotEmpty()) {
             throw ValidationException::withMessages([
                 'tipo' => ['El usuario no tiene un rol compatible con la selección.'],
+            ]);
+        }
+
+        $tieneBypass = in_array('mantenimiento.ver', $usuario->permisos, true);
+        if (!$tieneBypass && Configuracion::get('mantenimiento_activo', '0') === '1') {
+            throw ValidationException::withMessages([
+                'codigo' => [Configuracion::get('mantenimiento_mensaje') ?: 'El sistema está en mantenimiento. Volvé a intentarlo más tarde.'],
             ]);
         }
 

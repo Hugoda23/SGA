@@ -12,13 +12,18 @@ export default function Dashboard() {
   const [resumen, setResumen] = useState(null)
 
   const isAdmin = hasRole('admin')
+  const isDirector = hasRole('director')
+  const isSecretaria = hasRole('secretaria')
   const isAlumno = hasRole('alumno')
   const isCatedratico = hasRole('catedratico')
+  const verMetricas = isAdmin || isDirector || isSecretaria
 
   const firstName = user?.alumno
     ? user.alumno.nombre.split(' ')[0]
     : user?.catedratico
     ? user.catedratico.nombre.split(' ')[0]
+    : user?.nombre
+    ? user.nombre.split(' ')[0]
     : user?.username
     ? user.username.split(' ')[0]
     : 'Alejandro'
@@ -26,7 +31,7 @@ export default function Dashboard() {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        if (isAdmin) {
+        if (verMetricas) {
           const resStats = await api.get('/v1/dashboard/stats')
           setStats(resStats.data)
         }
@@ -41,7 +46,7 @@ export default function Dashboard() {
     }
 
     fetchData()
-  }, [isAdmin, isAlumno])
+  }, [verMetricas, isAlumno])
 
   const getMonthAndDay = (dateStr) => {
     if (!dateStr) return null
@@ -271,38 +276,25 @@ export default function Dashboard() {
         </>
       )}
 
-      {/* Vista director / secretaria */}
-      {!isAlumno && !isAdmin && (
-        <div className={`${card} flex flex-col items-start gap-4 sm:flex-row sm:items-center sm:justify-between`}>
-          <div>
-            <h2 className="text-lg font-bold text-neutral-900 dark:text-white">Mi Resumen</h2>
-            <p className="mt-1 text-sm font-medium text-neutral-500 dark:text-neutral-400">
-              El resumen académico está disponible para el rol de estudiante.
-            </p>
-          </div>
-          <div className="flex flex-wrap gap-3">
-            <Link to="/reportes/actas" className={btn.primary}>Ir a Reportes</Link>
-          </div>
-        </div>
-      )}
-
-      {/* Optional Admin Extended View if logged in as Admin */}
-      {isAdmin && (
+      {/* Vista director / secretaria / admin: métricas generales */}
+      {verMetricas && (
         <div className="mt-12 pt-8 border-t border-neutral-300 space-y-8 dark:border-neutral-700">
           <div className="flex items-center justify-between">
             <div>
               <h2 className="text-xl font-bold text-neutral-900 dark:text-white">
                 Métricas de Infraestructura y Sistema
               </h2>
-              <p className="text-xs text-neutral-500">Acceso rápido para administradores del SGA.</p>
+              <p className="text-xs text-neutral-500">Resumen general del sistema.</p>
             </div>
             <div className="flex gap-3">
               <Link to="/asignaciones/nuevo" className={btn.primary}>
                 Asignar Curso
               </Link>
-              <Link to="/admin/usuarios" className={btn.neutral}>
-                Crear Usuario
-              </Link>
+              {isAdmin && (
+                <Link to="/admin/usuarios" className={btn.neutral}>
+                  Crear Usuario
+                </Link>
+              )}
             </div>
           </div>
 

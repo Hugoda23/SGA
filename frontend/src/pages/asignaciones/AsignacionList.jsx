@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
 import api, { normList } from '../../api/axios'
 import DataTable from '../../components/DataTable'
+import { badge } from '../../lib/twClasses'
 
 export default function AsignacionList() {
   const [data, setData] = useState([]); const [loading, setLoading] = useState(true)
@@ -17,7 +18,7 @@ export default function AsignacionList() {
   const handleDelete = async (row) => { try { await api.delete(`/v1/asignaciones/${row.id_asignacion}`); fetchData() } catch(e) { console.error(e); throw e } }
   const columns = [
     { key: 'curso', label: 'Curso', render: (row) => row.curso?.nombre_curso || '-', exportValue: (row) => row.curso?.nombre_curso || '-' },
-    { key: 'catedratico', label: 'Catedrático', render: (row) => row.catedratico ? `${row.catedratico.nombre} ${row.catedratico.apellido}` : '-', exportValue: (row) => row.catedratico ? `${row.catedratico.nombre} ${row.catedratico.apellido}` : '-' },
+    { key: 'catedratico', label: 'Catedrático', render: (row) => row.catedratico ? `${row.catedratico.nombre} ${row.catedratico.apellido}` : <span className={badge.warning}>Pendiente</span>, exportValue: (row) => row.catedratico ? `${row.catedratico.nombre} ${row.catedratico.apellido}` : 'Pendiente' },
     { key: 'aula', label: 'Aula', render: (row) => row.aula?.nombre_aula || '-', exportValue: (row) => row.aula?.nombre_aula || '-' },
     { key: 'periodo', label: 'Periodo', render: (row) => row.periodo?.nombre || '-', exportValue: (row) => row.periodo?.nombre || '-' },
     { key: 'seccion', label: 'Sección', render: (row) => row.seccion?.nombre || '-', exportValue: (row) => row.seccion?.nombre || '-' },

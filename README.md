@@ -191,7 +191,6 @@ docker compose down -v
 ### Académico
 - **Inscripción con reglas de negocio** (`InscripcionService`): rechaza periodo cerrado, inscripción activa duplicada, cupo del aula superado, carrera no compatible y choque de horario (mismo día y franja solapada). Retiro de inscripción vía `POST /v1/inscripciones/{inscripcion}/retirar` (permite reinscribirse).
 - **Horario del alumno**: `GET /v1/alumno/horario` agrupa las clases de las inscripciones activas del alumno (curso, aula, grado, sección, periodo).
-- **Créditos en kárdex**: `curso.creditos` alimenta el PDF del kárdex con créditos aprobados.
 - **Estado académico y cierre de periodo** (`PromocionService`): al cerrar un periodo se bloquea la edición de calificaciones y se promueve a los alumnos que cumplen la nota mínima.
 
 ### Reportes
