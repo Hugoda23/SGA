@@ -262,22 +262,45 @@ docker run --rm -v "$PWD/backend":/app -w /app composer:2.7 sh -c \
 
 # 4. Reemplazar "tudominio.com" por el dominio real en docker/nginx/prod.conf
 
-# 5. Compilar el frontend (deja los estáticos en el volumen frontend_dist)
+# 5. Crear la carpeta donde "webserver" monta los archivos subidos (backend_storage).
+#    "public/storage" está en .gitignore (normalmente es un symlink en desarrollo) y
+#    no existe todavía en un clon nuevo — sin esto, Nginx falla al arrancar con
+#    "read-only file system" porque no puede crear el punto de montaje dentro de
+#    ./backend/public, que se monta de solo lectura.
+mkdir -p backend/public/storage
+
+# 6. Compilar el frontend (deja los estáticos en el volumen frontend_dist)
 docker compose -f docker-compose.prod.yml --env-file .env.production \
   --profile build run --rm frontend-build
 
-# 6. Levantar base de datos, backend (corre migraciones automáticamente) y Nginx
-docker compose -f docker-compose.prod.yml --env-file .env.production up -d db backend webserver
+# 7. Levantar base de datos y backend primero (todavía no Nginx)
+docker compose -f docker-compose.prod.yml --env-file .env.production up -d db backend
 
-# 7. Emitir el certificado SSL (Let's Encrypt, método webroot) — solo la primera vez
+# 8. Certificado autofirmado temporal — Nginx tiene el bloque HTTPS en su config
+#    incondicionalmente y no arranca si no encuentra un certificado en esa ruta,
+#    pero certbot (método webroot) necesita a Nginx ya corriendo para poder
+#    emitir el real. Este autofirmado solo existe para romper ese círculo.
+docker run --rm -v sga_certbot_conf:/etc/letsencrypt alpine sh -c "
+  apk add --no-cache openssl &&
+  mkdir -p /etc/letsencrypt/live/tudominio.com &&
+  openssl req -x509 -nodes -newkey rsa:2048 -days 1 \
+    -keyout /etc/letsencrypt/live/tudominio.com/privkey.pem \
+    -out /etc/letsencrypt/live/tudominio.com/fullchain.pem \
+    -subj '/CN=localhost'
+"
+
+# 9. Ahora sí, levantar Nginx (ya tiene un certificado, aunque sea temporal, para arrancar)
+docker compose -f docker-compose.prod.yml --env-file .env.production up -d webserver
+
+# 10. Emitir el certificado real (Let's Encrypt, método webroot) — solo la primera vez
 docker compose -f docker-compose.prod.yml --env-file .env.production run --rm \
   --entrypoint certbot certbot certonly --webroot -w /var/www/certbot \
   -d tudominio.com --email tu-correo@ejemplo.com --agree-tos --no-eff-email
 
-# 8. Reiniciar Nginx para que cargue el certificado recién emitido
+# 11. Reiniciar Nginx para que cargue el certificado real recién emitido
 docker compose -f docker-compose.prod.yml --env-file .env.production restart webserver
 
-# 9. Dejar la renovación automática del certificado corriendo en segundo plano
+# 12. Dejar la renovación automática del certificado corriendo en segundo plano
 docker compose -f docker-compose.prod.yml --env-file .env.production --profile certbot up -d certbot
 ```
 
