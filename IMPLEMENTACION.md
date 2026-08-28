@@ -984,5 +984,71 @@ El frontend `ConfiguracionCurso.jsx` renderiza 5 pestañas: **Avance Programáti
 
 ---
 
+## 17. Permisos por usuario, modo mantenimiento, mejoras varias y primer despliegue a producción (2026-08-27)
+
+### 17.1 Objetivo
+
+Sesión de cierre antes de pasar a producción: pulir varios módulos existentes (Inscripciones, Registro de Calificaciones, Entrega de Tareas, Cursos, Usuarios), agregar control de mantenimiento y versión, dar de baja datos de prueba, y desplegar el sistema en un VPS por primera vez.
+
+### 17.2 Excepciones de permisos por usuario individual
+
+Hasta ahora los permisos solo se asignaban por rol. Se agrega una capa de excepciones **por usuario**, por encima del rol:
+
+- Tabla `usuario_permiso` (`id_usuario`, `id_permiso`, `concedido` bool) — sin fila, el usuario hereda lo del rol; `concedido=true` otorga el permiso aunque el rol no lo tenga; `concedido=false` se lo quita aunque el rol sí lo tenga.
+- `Usuario::getPermisosAttribute()` combina permisos de rol + excepciones propias.
+- Pantalla nueva **Permisos → Permisos por Usuario** (`PermisoUsuario.jsx`): elegís un usuario, ves todos los permisos agrupados por módulo (mismo componente visual que Roles), lo que difiere del rol se marca como excepción.
+- Endpoints: `GET/PUT /v1/usuarios/{usuario}/permisos`.
+
+### 17.3 Modo mantenimiento
+
+- `Configuracion` ganó 3 claves nuevas: `version_sistema`, `mantenimiento_activo`, `mantenimiento_mensaje` — editables desde una pantalla fija en **Configuración del Sistema** (se dejó de ser un CRUD de clave/valor libre; ver 17.7).
+- Middleware `CheckMantenimiento`: con el modo activo, corta con 503 a cualquier usuario autenticado que no tenga el permiso `mantenimiento.ver` (el rol admin lo tiene siempre, vía `'all'`). El login también lo bloquea antes de emitir token.
+- El permiso `mantenimiento.ver` se puede otorgar puntualmente a otra cuenta desde Permisos por Usuario (17.2) — así se puede probar el sistema como otro rol mientras está en mantenimiento, sin abrirlo a todo el mundo.
+- Frontend: interceptor de axios redirige a `/mantenimiento` (página nueva) ante cualquier 503 con `mantenimiento:true`; el login muestra un aviso si está activo; la versión del sistema se muestra en el login y en el pie del sidebar (`GET /v1/sistema/estado`, público).
+
+### 17.4 Inscripciones
+
+- **Separación por sección**: `inscribirPorGrado` ahora recibe `id_seccion` opcional y lo incluye en la clave de búsqueda/creación de la `Asignacion` — alumnos de distintas secciones quedan en grupos de clase distintos aunque compartan curso/grado/periodo (antes se mezclaban).
+- **Choque de horario** ampliado: además del choque de aula que ya existía, se agregó choque de **catedrático** (dos clases a la vez, sin importar el aula) y choque de **alumno** (el alumno ya tiene otra clase a esa hora) — las tres validaciones corren también en la inscripción por grado, no solo al inscribir en una asignación puntual.
+- **Listado agrupado por alumno**: la pantalla de Inscripciones pasó de una fila por curso a una fila por alumno (`GET /v1/inscripciones/resumen-alumnos`), con carrera/grado/sección/cursos/fecha. Acciones por fila: **Editar** (modal para corregir grado/sección/carrera del alumno — `PUT /v1/alumnos/{id}`, no toca sus inscripciones) y **Gestionar** (modal con cada curso individual y su propio botón de eliminar).
+
+### 17.5 Registro de Calificaciones
+
+Bug real: las tareas vinculadas a una zona de evaluación ya se sumaban en el cálculo interno de la nota final, pero el cuadro de calificaciones nunca las mostraba (solo dibujaba columnas por `Evaluacion`, no por `Tarea`) — una zona compuesta solo por tareas se veía siempre en 0 aunque la nota final fuera correcta. `RegistroCalificacionesController::show` ahora también manda `notas_tareas` por alumno; el frontend agrega esas columnas como solo-lectura (se siguen calificando desde Entrega de Tareas) y las suma en el total de la zona.
+
+### 17.6 Entrega de Tareas
+
+La calificación no debe superar los puntos de la tarea: el backend ya lo validaba, pero el input del frontend no limitaba nada al escribir y el mensaje de error (en inglés, por el locale de Laravel) quedaba descartado por el catch genérico. Se agregó clamp en vivo al input, mensajes de validación en español, y pasos de 0.5 en las flechitas de todos los campos de calificación (antes eran pasos de 1 o 0.01 según la pantalla).
+
+### 17.7 Configuración del Sistema
+
+Dejó de ser un CRUD de `clave`/`valor` libre (se podía escribir mal el nombre de una clave y quedaba sin efecto en silencio) — ahora es una pantalla fija con los campos reales: nombre de la institución, nota mínima, versión del sistema, y el modo mantenimiento (17.3). Se quitó el campo `creditos` de `Curso` (columna y toda referencia en frontend/backend/PDFs) por no usarse en ningún lado.
+
+### 17.8 Cursos y reportes
+
+- PDF **Listado de Alumnos** por asignación (curso + grado + sección + periodo): No./nombre/código/clave/firma. Accesible desde Cursos, Mis Cursos (catedrático) y Reportes PDF → Listado de Alumnos.
+- Rol **secretaría** ganó permisos de Reportes PDF, Carreras y Periodos (antes solo los tenía director).
+
+### 17.9 Dashboard y Usuarios
+
+- Director y secretaría ven ahora el mismo bloque de métricas que admin (alumnos, catedráticos, cursos, inscripciones + gráfico de alumnos por carrera), sin el botón "Crear Usuario".
+- El modelo `Usuario` ganó `nombre`/`apellido` propios (antes solo existían en los perfiles de Alumno/Catedratico) — el personal sin esos perfiles (admin/director/secretaría) ya puede tener nombre completo, editable desde Usuarios.
+
+### 17.10 Corrección visual y rebranding
+
+- El badge de notificaciones no leídas se recortaba: `data-twe-ripple-init` (efecto ripple de Tailwind Elements) le inyecta `overflow:hidden` al botón en tiempo de ejecución, cortando el badge que sobresalía de la esquina. Se movió el badge a hermano del botón en vez de hijo.
+- "SGA — Sistema de Gestión Académica" → "Instituto Florencio Carrascoza" en login, sidebar, título de pestaña, meta description y manifest PWA.
+
+### 17.11 Primer despliegue a producción (VPS)
+
+Se desplegó por primera vez en un VPS (Hostinger) usando `docker-compose.prod.yml` + Nginx con Let's Encrypt, siguiendo la guía del README. Se encontraron y corrigieron dos problemas reales de la config de Nginx que no se habían probado en un despliegue real hasta ahora (ambos documentados en el README y corregidos en `docker/nginx/prod.conf`):
+
+1. **`public/storage` faltante**: Nginx no arrancaba ("read-only file system") porque el punto de montaje del volumen de archivos subidos no podía crearse dentro de `./backend/public` (montado de solo lectura) — esa carpeta está en `.gitignore` y no existe en un clon nuevo. Se agregó `mkdir -p backend/public/storage` como paso explícito antes de levantar Nginx.
+2. **POST a `/api` devolvía 405 de Nginx, sin llegar nunca a Laravel**: el bloque `location /api` usaba `try_files` con una `location` anidada para el manejo de PHP; ese patrón dispara una redirección interna que, al no matchear `location /api` de nuevo (por no empezar con `/api`), terminaba cayendo en el `location /` del frontend — las peticiones GET "funcionaban" por accidente (devolvían el `index.html` del SPA con 200), pero las POST (login, etc.) se rechazaban con 405 porque un archivo estático no acepta POST. Se reemplazó por `rewrite ... break` + `fastcgi_pass` en el mismo bloque, sin redirección interna, con `SCRIPT_FILENAME` apuntando a la ruta real de Laravel dentro del contenedor `backend` (`/var/www/html/public/index.php`, distinta de la ruta que usa Nginx para su propio bind-mount de `/storage`).
+
+Después de desplegar, se hizo un `migrate:fresh` + siembra de solo permisos/roles + un único usuario admin en la base de producción, para arrancar con datos limpios (sin nada de lo usado durante el desarrollo).
+
+---
+
 > NOTA: Este archivo debe actualizarse con cada cambio significativo al proyecto.
 > Es el documento fuente de verdad de la implementación técnica.
