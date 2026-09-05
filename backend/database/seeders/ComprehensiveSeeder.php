@@ -171,6 +171,9 @@ class ComprehensiveSeeder extends Seeder
                     'correo' => $faker->unique()->safeEmail,
                     'telefono' => $faker->numerify('########'),
                     'fecha_nacimiento' => $faker->dateTimeBetween('-25 years', '-18 years')->format('Y-m-d'),
+                    'nacionalidad' => 'Guatemalteca',
+                    'tipo_documento' => 'cui',
+                    'numero_documento' => '2' . str_pad($i, 12, '0', STR_PAD_LEFT),
                     'id_carrera' => $faker->randomElement($carreras)->id_carrera,
                     'id_grado_actual' => $faker->randomElement($grados)->id_grado,
                     'estado_academico' => 'activo'

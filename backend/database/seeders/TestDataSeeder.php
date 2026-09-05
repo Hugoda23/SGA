@@ -58,6 +58,9 @@ class TestDataSeeder extends Seeder
                     'correo' => 'juan@example.com',
                     'telefono' => '55550101',
                     'fecha_nacimiento' => '2005-03-15',
+                    'nacionalidad' => 'Guatemalteca',
+                    'tipo_documento' => 'cui',
+                    'numero_documento' => '1234567890101',
                     'id_carrera' => $carrera->id_carrera,
                 ]
             );
@@ -101,6 +104,9 @@ class TestDataSeeder extends Seeder
                     'correo' => 'hhugodiaz23@gmail.com',
                     'telefono' => '32032358',
                     'fecha_nacimiento' => '2026-07-05',
+                    'nacionalidad' => 'Guatemalteca',
+                    'tipo_documento' => 'cui',
+                    'numero_documento' => '3203234500101',
                     'id_carrera' => $carrera->id_carrera,
                 ]
             );

@@ -19,6 +19,9 @@ class AlumnoFactory extends Factory
             'codigo_mineduc' => $this->faker->unique()->numerify('MIN-#######'),
             'correo' => $this->faker->unique()->safeEmail(),
             'telefono' => $this->faker->numerify('########'),
+            'nacionalidad' => 'Guatemalteca',
+            'tipo_documento' => 'cui',
+            'numero_documento' => $this->faker->unique()->numerify('#############'),
             'id_carrera' => Carrera::factory(),
             'estado_academico' => 'activo',
         ];

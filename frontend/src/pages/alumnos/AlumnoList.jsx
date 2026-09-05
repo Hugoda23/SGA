@@ -43,10 +43,15 @@ export default function AlumnoList() {
     retirado: 'text-error',
   }
 
+  const tiposDocumentoLabel = { cui: 'CUI', pasaporte: 'Pasaporte' }
+
   const columns = [
     { key: 'codigo_mineduc', label: 'Código' },
     { key: 'nombre', label: 'Nombre' },
     { key: 'apellido', label: 'Apellido' },
+    { key: 'nacionalidad', label: 'Nacionalidad', render: (row) => row.nacionalidad || '-', exportValue: (row) => row.nacionalidad || '-' },
+    { key: 'tipo_documento', label: 'Documento', render: (row) => tiposDocumentoLabel[row.tipo_documento] || '-', exportValue: (row) => tiposDocumentoLabel[row.tipo_documento] || '-' },
+    { key: 'numero_documento', label: 'No. Documento', render: (row) => row.numero_documento || '-', exportValue: (row) => row.numero_documento || '-' },
     { key: 'correo', label: 'Correo' },
     { key: 'telefono', label: 'Teléfono' },
     { key: 'carrera', label: 'Carrera', render: (row) => row.carrera?.nombre_carrera || '-', exportValue: (row) => row.carrera?.nombre_carrera || '-' },

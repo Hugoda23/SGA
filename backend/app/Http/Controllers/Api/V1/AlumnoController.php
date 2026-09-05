@@ -25,6 +25,7 @@ class AlumnoController extends Controller
                 $w->where('nombre', 'ilike', "%{$q}%")
                     ->orWhere('apellido', 'ilike', "%{$q}%")
                     ->orWhere('codigo_mineduc', 'ilike', "%{$q}%")
+                    ->orWhere('numero_documento', 'ilike', "%{$q}%")
                     ->orWhere('correo', 'ilike', "%{$q}%");
             });
         }
@@ -41,6 +42,9 @@ class AlumnoController extends Controller
             'correo' => 'nullable|string|max:150',
             'telefono' => 'nullable|string|max:20',
             'fecha_nacimiento' => 'required|date',
+            'nacionalidad' => 'required|string|max:60',
+            'tipo_documento' => 'required|string|in:cui,pasaporte',
+            'numero_documento' => 'required|string|max:30|unique:alumno,numero_documento',
             'id_carrera' => 'nullable|exists:carrera,id_carrera',
             'estado_academico' => 'sometimes|string|in:activo,inactivo,egresado,retirado',
         ]);
@@ -70,6 +74,9 @@ class AlumnoController extends Controller
                 'correo' => $validated['correo'] ?? null,
                 'telefono' => $validated['telefono'] ?? null,
                 'fecha_nacimiento' => $validated['fecha_nacimiento'],
+                'nacionalidad' => $validated['nacionalidad'],
+                'tipo_documento' => $validated['tipo_documento'],
+                'numero_documento' => $validated['numero_documento'],
                 'id_carrera' => $validated['id_carrera'] ?? null,
                 'estado_academico' => $validated['estado_academico'] ?? 'activo',
             ]);
@@ -97,6 +104,9 @@ class AlumnoController extends Controller
             'correo' => 'nullable|string|max:150',
             'telefono' => 'nullable|string|max:20',
             'fecha_nacimiento' => 'nullable|date',
+            'nacionalidad' => 'sometimes|required|string|max:60',
+            'tipo_documento' => 'sometimes|required|string|in:cui,pasaporte',
+            'numero_documento' => 'sometimes|required|string|max:30|unique:alumno,numero_documento,' . $alumno->id_alumno . ',id_alumno',
             'id_carrera' => 'nullable|exists:carrera,id_carrera',
             'id_grado_actual' => 'nullable|exists:grado,id_grado',
             'id_seccion_actual' => 'nullable|exists:seccion,id_seccion',
