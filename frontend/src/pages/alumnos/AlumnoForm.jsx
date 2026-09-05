@@ -11,12 +11,17 @@ export default function AlumnoForm() {
   const navigate = useNavigate()
   const [form, setForm] = useState({
     codigo_mineduc: '', nombre: '', apellido: '', correo: '',
-    telefono: '', fecha_nacimiento: '', nacionalidad: 'Guatemalteca',
+    telefono: '', fecha_nacimiento: '', genero: '', nacionalidad: 'Guatemalteca',
     tipo_documento: '', numero_documento: '', estado_academico: 'activo',
   })
   const [passwordTemporal, setPasswordTemporal] = useState('')
   const [loading, setLoading] = useState(false)
   const [alertMessage, setAlertMessage] = useState(null)
+
+  const generos = [
+    { value: 'masculino', label: 'Masculino' },
+    { value: 'femenino', label: 'Femenino' },
+  ]
 
   const tiposDocumento = [
     { value: 'cui', label: 'CUI' },
@@ -41,6 +46,7 @@ export default function AlumnoForm() {
           correo: a.correo || '',
           telefono: a.telefono || '',
           fecha_nacimiento: a.fecha_nacimiento || '',
+          genero: a.genero || '',
           nacionalidad: a.nacionalidad || 'Guatemalteca',
           tipo_documento: a.tipo_documento || '',
           numero_documento: a.numero_documento || '',
@@ -109,7 +115,10 @@ export default function AlumnoForm() {
           <FormInput label="Teléfono" name="telefono" value={form.telefono} onChange={handleChange} placeholder="Teléfono" />
           <FormInput label="Fecha de Nacimiento" name="fecha_nacimiento" type="date" value={form.fecha_nacimiento} onChange={handleChange} required={!isEdit} />
         </div>
-        <FormInput label="Nacionalidad" name="nacionalidad" value={form.nacionalidad} onChange={handleChange} required placeholder="Guatemalteca" />
+        <div className="grid grid-cols-2 gap-4">
+          <FormInput label="Género" name="genero" type="select" value={form.genero} onChange={handleChange} required options={generos} />
+          <FormInput label="Nacionalidad" name="nacionalidad" value={form.nacionalidad} onChange={handleChange} required placeholder="Guatemalteca" />
+        </div>
         <div className="grid grid-cols-2 gap-4">
           <FormInput label="Documento de Identificación" name="tipo_documento" type="select" value={form.tipo_documento} onChange={handleChange} required options={tiposDocumento} />
           <FormInput label="No. de Documento" name="numero_documento" value={form.numero_documento} onChange={handleChange} required placeholder="Número de documento" />

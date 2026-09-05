@@ -22,6 +22,7 @@ class Alumno extends Model
         'correo',
         'telefono',
         'fecha_nacimiento',
+        'genero',
         'nacionalidad',
         'tipo_documento',
         'numero_documento',
