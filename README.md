@@ -316,9 +316,24 @@ docker compose -f docker-compose.prod.yml logs webserver --tail=100
 
 # Desplegar una actualización de código
 git pull
+
+# El backend lleva el código dentro de la imagen, hay que reconstruirla.
+# Al arrancar corre "php artisan migrate --force" solo (ver su "command"),
+# así que las migraciones nuevas se aplican en este paso.
 docker compose -f docker-compose.prod.yml --env-file .env.production build backend
-docker compose -f docker-compose.prod.yml --env-file .env.production --profile build run --rm frontend-build
+
+# El frontend se recompila a estáticos. Hay que reconstruir la imagen ANTES
+# de correr el servicio: "run" reutiliza la imagen existente si ya existe y,
+# sin este build, se recompilaría con el código viejo.
+docker compose -f docker-compose.prod.yml --env-file .env.production \
+  --profile build build frontend-build
+docker compose -f docker-compose.prod.yml --env-file .env.production \
+  --profile build run --rm frontend-build
+
 docker compose -f docker-compose.prod.yml --env-file .env.production up -d backend webserver
+
+# prod.conf es un bind-mount: si cambió, hace falta reiniciar Nginx.
+docker compose -f docker-compose.prod.yml --env-file .env.production restart webserver
 ```
 
 **Nota:** `EnviarNotificacionJob` y `EnviarNotificacionMultipleJob` (`backend/app/Jobs/`) existen

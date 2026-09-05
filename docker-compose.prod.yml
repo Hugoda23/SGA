@@ -155,6 +155,14 @@ services:
   # Build de un solo uso: compila el frontend y deja dist/ en el volumen
   # frontend_dist para que "webserver" lo sirva. No corre en segundo plano.
   # Ejecutar con: docker compose -f docker-compose.prod.yml --profile build run --rm frontend-build
+  #
+  # El volumen se monta en /dist y NO en /app/dist (que es donde la imagen
+  # dejó el build): Docker solo copia el contenido de la imagen a un volumen
+  # nombrado cuando ese volumen está vacío, así que montarlo sobre /app/dist
+  # tapaba el build nuevo en cada despliegue posterior al primero y el
+  # frontend se quedaba congelado. Copiando explícitamente de /app/dist a
+  # /dist el artefacto se renueva siempre; el rm previo limpia los assets
+  # con hash viejo, que si no se irían acumulando en el volumen.
   frontend-build:
     build:
       context: ./frontend
@@ -165,8 +173,8 @@ services:
         VITE_VAPID_PUBLIC_KEY: ${VAPID_PUBLIC_KEY}
     container_name: sga_frontend_build
     volumes:
-      - frontend_dist:/app/dist
-    command: ["true"]
+      - frontend_dist:/dist
+    command: ["sh", "-c", "rm -rf /dist/* /dist/.[!.]* 2>/dev/null; cp -a /app/dist/. /dist/"]
     profiles: ["build"]
 
   # Renovación automática del certificado SSL (Let's Encrypt).
