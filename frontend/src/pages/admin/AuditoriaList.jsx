@@ -2,12 +2,15 @@ import { useState, useEffect } from 'react'
 import api from '../../api/axios'
 import { btn, input, table as tbl, badge } from '../../lib/twClasses'
 import Modal from '../../components/Modal'
+import PdfViewerModal from '../../components/PdfViewerModal'
+import usePdfViewer from '../../hooks/usePdfViewer'
 
 export default function AuditoriaList() {
   const [logs, setLogs] = useState([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
   const [alertMessage, setAlertMessage] = useState(null)
+  const { pdf, abrirPdf, cerrarPdf, cargando } = usePdfViewer()
 
   useEffect(() => {
     fetchLogs()
@@ -24,19 +27,15 @@ export default function AuditoriaList() {
     }
   }
 
-  const handleDownloadPDF = async () => {
+  const handleVerPdf = async () => {
     try {
-      const response = await api.get('/v1/reportes/pdf/bitacora', { responseType: 'blob' })
-      const url = window.URL.createObjectURL(new Blob([response.data]))
-      const link = document.createElement('a')
-      link.href = url
-      link.setAttribute('download', 'bitacora_auditoria.pdf')
-      document.body.appendChild(link)
-      link.click()
-      link.remove()
+      await abrirPdf('/v1/reportes/pdf/bitacora', {
+        clave: 'bitacora',
+        nombreArchivo: 'bitacora_auditoria.pdf',
+        titulo: 'Bitácora de auditoría',
+      })
     } catch (error) {
-      console.error('Error al descargar la bitácora', error)
-      setAlertMessage('Error al descargar el PDF de auditoría.')
+      setAlertMessage(error.message)
     }
   }
 
@@ -80,12 +79,13 @@ export default function AuditoriaList() {
           </button>
           <button
             type="button"
-            onClick={handleDownloadPDF}
-            className={btn.primary}
+            onClick={handleVerPdf}
+            disabled={cargando === 'bitacora'}
+            className={`${btn.primary} disabled:cursor-not-allowed disabled:opacity-60`}
           >
             <span className="flex items-center gap-2">
               <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
-              Descargar PDF
+              {cargando === 'bitacora' ? 'Generando...' : 'Ver PDF'}
             </span>
           </button>
         </div>
@@ -165,6 +165,14 @@ export default function AuditoriaList() {
           </table>
         </div>
       </div>
+
+      <PdfViewerModal
+        open={!!pdf}
+        onClose={cerrarPdf}
+        url={pdf?.url}
+        nombreArchivo={pdf?.nombreArchivo}
+        titulo={pdf?.titulo}
+      />
 
       <Modal
         open={!!alertMessage}

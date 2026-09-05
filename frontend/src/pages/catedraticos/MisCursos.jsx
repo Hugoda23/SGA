@@ -2,6 +2,8 @@ import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import api from '../../api/axios'
 import { btn, badge } from '../../lib/twClasses'
+import PdfViewerModal from '../../components/PdfViewerModal'
+import usePdfViewer from '../../hooks/usePdfViewer'
 
 function formatHorario(proximo) {
   if (!proximo) return 'Sin horario'
@@ -18,6 +20,7 @@ function capitalize(str) {
 
 function CursoCard({ asignacion }) {
   const navigate = useNavigate()
+  const { pdf, abrirPdf, cerrarPdf, cargando } = usePdfViewer()
   const proximaLabel = formatHorario(asignacion.proximo_horario)
   const tareasBadge = asignacion.tareas_pendientes > 0
     ? { label: `${asignacion.tareas_pendientes} pendientes`, color: badge.warning }
@@ -25,15 +28,11 @@ function CursoCard({ asignacion }) {
 
   const handleListadoPDF = async () => {
     try {
-      const response = await api.get(`/v1/reportes/pdf/listado-alumnos/${asignacion.id_asignacion}`, { responseType: 'blob' })
-      const url = window.URL.createObjectURL(new Blob([response.data]))
-      const link = document.createElement('a')
-      link.href = url
-      link.setAttribute('download', `listado_alumnos_${asignacion.id_asignacion}.pdf`)
-      document.body.appendChild(link)
-      link.click()
-      link.remove()
-      window.URL.revokeObjectURL(url)
+      await abrirPdf(`/v1/reportes/pdf/listado-alumnos/${asignacion.id_asignacion}`, {
+        clave: 'listado',
+        nombreArchivo: `listado_alumnos_${asignacion.id_asignacion}.pdf`,
+        titulo: `Listado de alumnos — ${asignacion.nombre_curso || `ASG-${asignacion.id_asignacion}`}`,
+      })
     } catch (err) {
       console.error(err)
     }
@@ -93,9 +92,10 @@ function CursoCard({ asignacion }) {
           </button>
           <button
             onClick={handleListadoPDF}
-            className={`${btn.outline} w-full`}
+            disabled={cargando === 'listado'}
+            className={`${btn.outline} w-full disabled:cursor-not-allowed disabled:opacity-60`}
           >
-            Listado PDF
+            {cargando === 'listado' ? 'Generando...' : 'Ver Listado'}
           </button>
           <button
             onClick={() => navigate(`/configuracion-curso/${asignacion.id_asignacion}`)}
@@ -105,6 +105,14 @@ function CursoCard({ asignacion }) {
           </button>
         </div>
       </div>
+
+      <PdfViewerModal
+        open={!!pdf}
+        onClose={cerrarPdf}
+        url={pdf?.url}
+        nombreArchivo={pdf?.nombreArchivo}
+        titulo={pdf?.titulo}
+      />
     </div>
   )
 }

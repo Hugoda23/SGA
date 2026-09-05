@@ -3,6 +3,8 @@ import { useParams, useNavigate } from 'react-router-dom'
 import api from '../../api/axios'
 import { btn, input, table as tbl, badge, card } from '../../lib/twClasses'
 import Modal from '../../components/Modal'
+import PdfViewerModal from '../../components/PdfViewerModal'
+import usePdfViewer from '../../hooks/usePdfViewer'
 
 const ESTADOS = ['Presente', 'Ausente', 'Justificado']
 
@@ -23,7 +25,7 @@ export default function AsistenciaCurso() {
   const [fecha, setFecha] = useState(new Date().toISOString().split('T')[0])
   const [estados, setEstados] = useState({})
   const [saving, setSaving] = useState(false)
-  const [descargandoPDF, setDescargandoPDF] = useState(false)
+  const { pdf, abrirPdf, cerrarPdf, cargando } = usePdfViewer()
   const [alertMessage, setAlertMessage] = useState(null)
 
   const fetchData = useCallback(async () => {
@@ -84,46 +86,28 @@ export default function AsistenciaCurso() {
     }
   }
 
-  const descargarPDF = async () => {
-    setDescargandoPDF(true)
+  const verPDF = async () => {
     try {
-      const res = await api.get(`/v1/reportes/pdf/asistencia/${id_asignacion}`, {
+      await abrirPdf(`/v1/reportes/pdf/asistencia/${id_asignacion}`, {
+        clave: 'dia',
         params: { fecha },
-        responseType: 'blob',
+        nombreArchivo: `asistencia_${id_asignacion}_${fecha}.pdf`,
+        titulo: `Asistencia del ${fecha}`,
       })
-      const url = URL.createObjectURL(new Blob([res.data], { type: 'application/pdf' }))
-      const link = document.createElement('a')
-      link.href = url
-      link.setAttribute('download', `asistencia_${id_asignacion}_${fecha}.pdf`)
-      document.body.appendChild(link)
-      link.click()
-      document.body.removeChild(link)
-      URL.revokeObjectURL(url)
-    } catch {
-      setAlertMessage('Error al descargar PDF')
-    } finally {
-      setDescargandoPDF(false)
+    } catch (err) {
+      setAlertMessage(err.message)
     }
   }
 
-  const descargarPDFFinal = async () => {
-    setDescargandoPDF(true)
+  const verPDFFinal = async () => {
     try {
-      const res = await api.get(`/v1/reportes/pdf/asistencia-final/${id_asignacion}`, {
-        responseType: 'blob',
+      await abrirPdf(`/v1/reportes/pdf/asistencia-final/${id_asignacion}`, {
+        clave: 'final',
+        nombreArchivo: `asistencia_final_${id_asignacion}.pdf`,
+        titulo: 'Asistencia final del curso',
       })
-      const url = URL.createObjectURL(new Blob([res.data], { type: 'application/pdf' }))
-      const link = document.createElement('a')
-      link.href = url
-      link.setAttribute('download', `asistencia_final_${id_asignacion}.pdf`)
-      document.body.appendChild(link)
-      link.click()
-      document.body.removeChild(link)
-      URL.revokeObjectURL(url)
-    } catch {
-      setAlertMessage('Error al descargar PDF')
-    } finally {
-      setDescargandoPDF(false)
+    } catch (err) {
+      setAlertMessage(err.message)
     }
   }
 
@@ -215,9 +199,9 @@ export default function AsistenciaCurso() {
               <input type="date" value={fecha} onChange={(e) => cargarFecha(e.target.value)} className={input.base} />
             </div>
             <div className="flex gap-2">
-              <button onClick={descargarPDF} disabled={descargandoPDF} className={`${btn.outline} disabled:opacity-50`}>
+              <button onClick={verPDF} disabled={cargando === 'dia'} className={`${btn.outline} disabled:opacity-50`}>
                 <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
-                {descargandoPDF ? '...' : 'PDF'}
+                {cargando === 'dia' ? '...' : 'PDF'}
               </button>
               <button onClick={handleGuardar} disabled={saving} className={`${btn.primary} disabled:opacity-50`}>
                 <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4" /></svg>
@@ -310,9 +294,9 @@ export default function AsistenciaCurso() {
                 <h2 className="font-bold text-neutral-800 dark:text-neutral-100">Lista final de asistencia</h2>
                 <p className="mt-0.5 text-xs text-neutral-500 dark:text-neutral-400">Resumen de asistencia por alumno en el curso.</p>
               </div>
-              <button onClick={descargarPDFFinal} disabled={descargandoPDF} className={`${btn.outline} disabled:opacity-50`}>
+              <button onClick={verPDFFinal} disabled={cargando === 'final'} className={`${btn.outline} disabled:opacity-50`}>
                 <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
-                {descargandoPDF ? 'Generando...' : 'Descargar PDF'}
+                {cargando === 'final' ? 'Generando...' : 'Ver PDF'}
               </button>
             </div>
           </div>
@@ -352,6 +336,14 @@ export default function AsistenciaCurso() {
           )}
         </div>
       )}
+
+      <PdfViewerModal
+        open={!!pdf}
+        onClose={cerrarPdf}
+        url={pdf?.url}
+        nombreArchivo={pdf?.nombreArchivo}
+        titulo={pdf?.titulo}
+      />
 
       <Modal
         open={!!alertMessage}

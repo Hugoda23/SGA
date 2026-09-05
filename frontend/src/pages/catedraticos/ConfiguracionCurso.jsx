@@ -3,6 +3,8 @@ import { useParams, useNavigate } from 'react-router-dom'
 import api from '../../api/axios'
 import { btn, input, card, badge } from '../../lib/twClasses'
 import Modal from '../../components/Modal'
+import PdfViewerModal from '../../components/PdfViewerModal'
+import usePdfViewer from '../../hooks/usePdfViewer'
 import MaterialesTab from './curso/MaterialesTab'
 import AnunciosTab from './curso/AnunciosTab'
 import EvaluacionesTab from './curso/EvaluacionesTab'
@@ -74,7 +76,7 @@ export default function ConfiguracionCurso() {
   const [unidadEliminar, setUnidadEliminar] = useState(null)
   const [eliminando, setEliminando] = useState(false)
 
-  const [descargandoPDF, setDescargandoPDF] = useState(false)
+  const { pdf, abrirPdf, cerrarPdf, cargando } = usePdfViewer()
   const [alertMessage, setAlertMessage] = useState(null)
 
   const cargarTodo = useCallback(async () => {
@@ -257,24 +259,15 @@ export default function ConfiguracionCurso() {
     }
   }
 
-  const descargarPDF = async () => {
-    setDescargandoPDF(true)
+  const verPDF = async () => {
     try {
-      const res = await api.get(`/v1/reportes/pdf/avance-programatico/${id_asignacion}`, {
-        responseType: 'blob',
+      await abrirPdf(`/v1/reportes/pdf/avance-programatico/${id_asignacion}`, {
+        clave: 'avance',
+        nombreArchivo: `avance_programatico_${id_asignacion}.pdf`,
+        titulo: 'Avance programático',
       })
-      const url = URL.createObjectURL(new Blob([res.data], { type: 'application/pdf' }))
-      const link = document.createElement('a')
-      link.href = url
-      link.setAttribute('download', `avance_programatico_${id_asignacion}.pdf`)
-      document.body.appendChild(link)
-      link.click()
-      document.body.removeChild(link)
-      URL.revokeObjectURL(url)
-    } catch {
-      setAlertMessage('Error al descargar el PDF')
-    } finally {
-      setDescargandoPDF(false)
+    } catch (err) {
+      setAlertMessage(err.message)
     }
   }
 
@@ -391,9 +384,9 @@ export default function ConfiguracionCurso() {
               <button onClick={() => setConfirmGenerar(true)} disabled={unidades.length > 0} className={`${btn.outline} disabled:opacity-40`} title={unidades.length > 0 ? 'Ya existen semanas programadas' : 'Genera el avance completo de 16 semanas'}>
                 Generar 16 semanas
               </button>
-              <button onClick={descargarPDF} disabled={descargandoPDF} className={`${btn.success} disabled:opacity-50`}>
+              <button onClick={verPDF} disabled={cargando === 'avance'} className={`${btn.success} disabled:opacity-50`}>
                 <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
-                {descargandoPDF ? 'Generando...' : 'Descargar PDF'}
+                {cargando === 'avance' ? 'Generando...' : 'Ver PDF'}
               </button>
             </div>
           </div>
@@ -637,6 +630,14 @@ export default function ConfiguracionCurso() {
       )}
 
       {/* Modal Unidad */}
+      <PdfViewerModal
+        open={!!pdf}
+        onClose={cerrarPdf}
+        url={pdf?.url}
+        nombreArchivo={pdf?.nombreArchivo}
+        titulo={pdf?.titulo}
+      />
+
       <Modal
         open={modalUnidad}
         onClose={() => setModalUnidad(false)}

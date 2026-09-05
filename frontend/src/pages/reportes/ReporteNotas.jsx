@@ -2,12 +2,15 @@ import { useState, useEffect } from 'react'
 import api, { normList } from '../../api/axios'
 import { btn, input, table as tbl } from '../../lib/twClasses'
 import Modal from '../../components/Modal'
+import PdfViewerModal from '../../components/PdfViewerModal'
+import usePdfViewer from '../../hooks/usePdfViewer'
 
 export default function ReporteNotas() {
   const [search, setSearch] = useState('')
   const [alumnos, setAlumnos] = useState([])
   const [loading, setLoading] = useState(true)
   const [alertMessage, setAlertMessage] = useState(null)
+  const { pdf, abrirPdf, cerrarPdf, cargando } = usePdfViewer()
 
   useEffect(() => {
     const fetchAlumnos = async () => {
@@ -23,35 +26,27 @@ export default function ReporteNotas() {
     fetchAlumnos();
   }, []);
 
-  const handleDownloadBoletin = async (id_alumno) => {
+  const handleVerBoletin = async (row) => {
     try {
-      const response = await api.get(`/v1/reportes/pdf/boletin/${id_alumno}`, { responseType: 'blob' });
-      const url = window.URL.createObjectURL(new Blob([response.data]));
-      const link = document.createElement('a');
-      link.href = url;
-      link.setAttribute('download', `boletin_alumno_${id_alumno}.pdf`);
-      document.body.appendChild(link);
-      link.click();
-      link.remove();
+      await abrirPdf(`/v1/reportes/pdf/boletin/${row.id_alumno}`, {
+        clave: `boletin-${row.id_alumno}`,
+        nombreArchivo: `boletin_alumno_${row.id_alumno}.pdf`,
+        titulo: `Boletín — ${row.nombre} ${row.apellido}`,
+      })
     } catch (error) {
-      console.error('Error al descargar el PDF', error);
-      setAlertMessage('Error al descargar el Boletín. Verifica que el backend esté ejecutándose.');
+      setAlertMessage(error.message)
     }
   }
 
-  const handleDownloadKardex = async (id_alumno) => {
+  const handleVerKardex = async (row) => {
     try {
-      const response = await api.get(`/v1/reportes/pdf/kardex/${id_alumno}`, { responseType: 'blob' });
-      const url = window.URL.createObjectURL(new Blob([response.data]));
-      const link = document.createElement('a');
-      link.href = url;
-      link.setAttribute('download', `kardex_alumno_${id_alumno}.pdf`);
-      document.body.appendChild(link);
-      link.click();
-      link.remove();
+      await abrirPdf(`/v1/reportes/pdf/kardex/${row.id_alumno}`, {
+        clave: `kardex-${row.id_alumno}`,
+        nombreArchivo: `kardex_alumno_${row.id_alumno}.pdf`,
+        titulo: `Kárdex — ${row.nombre} ${row.apellido}`,
+      })
     } catch (error) {
-      console.error('Error al descargar el PDF', error);
-      setAlertMessage('Error al descargar el Kárdex.');
+      setAlertMessage(error.message)
     }
   }
 
@@ -130,18 +125,20 @@ export default function ReporteNotas() {
                     <td className="whitespace-nowrap px-4 py-3 text-right">
                       <div className="flex justify-end gap-2">
                         <button 
-                          onClick={() => handleDownloadBoletin(row.id_alumno)}
-                          className="rounded-lg bg-primary-50 px-3 py-1.5 text-xs font-bold text-primary transition-colors hover:bg-primary hover:text-white dark:bg-primary-100/10"
-                          title="Descargar Boletín"
+                          onClick={() => handleVerBoletin(row)}
+                          disabled={cargando === `boletin-${row.id_alumno}`}
+                          className="rounded-lg bg-primary-50 px-3 py-1.5 text-xs font-bold text-primary transition-colors hover:bg-primary hover:text-white disabled:cursor-not-allowed disabled:opacity-60 dark:bg-primary-100/10"
+                          title="Ver Boletín"
                         >
-                          PDF Boletín
+                          {cargando === `boletin-${row.id_alumno}` ? 'Generando...' : 'Ver Boletín'}
                         </button>
                         <button 
-                          onClick={() => handleDownloadKardex(row.id_alumno)}
-                          className="rounded-lg bg-info-50 px-3 py-1.5 text-xs font-bold text-info transition-colors hover:bg-info hover:text-white dark:bg-info-100/10"
-                          title="Descargar Kárdex"
+                          onClick={() => handleVerKardex(row)}
+                          disabled={cargando === `kardex-${row.id_alumno}`}
+                          className="rounded-lg bg-info-50 px-3 py-1.5 text-xs font-bold text-info transition-colors hover:bg-info hover:text-white disabled:cursor-not-allowed disabled:opacity-60 dark:bg-info-100/10"
+                          title="Ver Kárdex"
                         >
-                          PDF Kárdex
+                          {cargando === `kardex-${row.id_alumno}` ? 'Generando...' : 'Ver Kárdex'}
                         </button>
                       </div>
                     </td>
@@ -152,6 +149,14 @@ export default function ReporteNotas() {
           </table>
         </div>
       </div>
+
+      <PdfViewerModal
+        open={!!pdf}
+        onClose={cerrarPdf}
+        url={pdf?.url}
+        nombreArchivo={pdf?.nombreArchivo}
+        titulo={pdf?.titulo}
+      />
 
       <Modal
         open={!!alertMessage}

@@ -3,6 +3,8 @@ import { useParams, useNavigate } from 'react-router-dom'
 import api from '../../api/axios'
 import { btn, table as tbl, card } from '../../lib/twClasses'
 import Modal from '../../components/Modal'
+import PdfViewerModal from '../../components/PdfViewerModal'
+import usePdfViewer from '../../hooks/usePdfViewer'
 
 export default function RegistroCalificaciones() {
   const { id_asignacion } = useParams()
@@ -14,6 +16,7 @@ export default function RegistroCalificaciones() {
   const [saving, setSaving] = useState(false)
   const [notasTemp, setNotasTemp] = useState({})
   const [alertMessage, setAlertMessage] = useState(null)
+  const { pdf, abrirPdf, cerrarPdf, cargando } = usePdfViewer()
 
   const fetchData = useCallback(async () => {
     try {
@@ -52,19 +55,15 @@ export default function RegistroCalificaciones() {
     }))
   }
 
-  const handleExportarPDF = async () => {
+  const handleVerActa = async () => {
     try {
-      const response = await api.get(`/v1/reportes/pdf/acta/${id_asignacion}`, { responseType: 'blob' })
-      const url = window.URL.createObjectURL(new Blob([response.data]))
-      const link = document.createElement('a')
-      link.href = url
-      link.setAttribute('download', `acta_asignacion_${id_asignacion}.pdf`)
-      document.body.appendChild(link)
-      link.click()
-      link.remove()
-      window.URL.revokeObjectURL(url)
+      await abrirPdf(`/v1/reportes/pdf/acta/${id_asignacion}`, {
+        clave: 'acta',
+        nombreArchivo: `acta_asignacion_${id_asignacion}.pdf`,
+        titulo: 'Acta de calificaciones',
+      })
     } catch (err) {
-      setAlertMessage('No se pudo exportar el acta a PDF.')
+      setAlertMessage(err.message)
     }
   }
 
@@ -189,8 +188,8 @@ export default function RegistroCalificaciones() {
             <><svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4" /></svg> Guardar Cambios</>
           )}
         </button>
-        <button onClick={handleExportarPDF} className={btn.outline}>
-          <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg> Exportar a PDF
+        <button onClick={handleVerActa} disabled={cargando === 'acta'} className={`${btn.outline} disabled:cursor-not-allowed disabled:opacity-60`}>
+          <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg> {cargando === 'acta' ? 'Generando...' : 'Ver Acta'}
         </button>
       </div>
 
@@ -294,6 +293,14 @@ export default function RegistroCalificaciones() {
       </div>
 
       {/* Alert Modal */}
+      <PdfViewerModal
+        open={!!pdf}
+        onClose={cerrarPdf}
+        url={pdf?.url}
+        nombreArchivo={pdf?.nombreArchivo}
+        titulo={pdf?.titulo}
+      />
+
       <Modal
         open={!!alertMessage}
         onClose={() => setAlertMessage(null)}

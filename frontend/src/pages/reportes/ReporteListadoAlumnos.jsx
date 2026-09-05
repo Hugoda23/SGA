@@ -3,6 +3,8 @@ import { useSearchParams } from 'react-router-dom'
 import api, { normList } from '../../api/axios'
 import { btn, input, table as tbl, badge } from '../../lib/twClasses'
 import Modal from '../../components/Modal'
+import PdfViewerModal from '../../components/PdfViewerModal'
+import usePdfViewer from '../../hooks/usePdfViewer'
 
 export default function ReporteListadoAlumnos() {
   const [searchParams] = useSearchParams()
@@ -10,6 +12,7 @@ export default function ReporteListadoAlumnos() {
   const [asignaciones, setAsignaciones] = useState([])
   const [loading, setLoading] = useState(true)
   const [alertMessage, setAlertMessage] = useState(null)
+  const { pdf, abrirPdf, cerrarPdf, cargando } = usePdfViewer()
 
   useEffect(() => {
     const fetchAsignaciones = async () => {
@@ -25,20 +28,15 @@ export default function ReporteListadoAlumnos() {
     fetchAsignaciones()
   }, [])
 
-  const handleDownload = async (id_asignacion) => {
+  const handleVerPdf = async (id_asignacion) => {
     try {
-      const response = await api.get(`/v1/reportes/pdf/listado-alumnos/${id_asignacion}`, { responseType: 'blob' })
-      const url = window.URL.createObjectURL(new Blob([response.data]))
-      const link = document.createElement('a')
-      link.href = url
-      link.setAttribute('download', `listado_alumnos_${id_asignacion}.pdf`)
-      document.body.appendChild(link)
-      link.click()
-      link.remove()
-      window.URL.revokeObjectURL(url)
+      await abrirPdf(`/v1/reportes/pdf/listado-alumnos/${id_asignacion}`, {
+        clave: id_asignacion,
+        nombreArchivo: `listado_alumnos_${id_asignacion}.pdf`,
+        titulo: `Listado de alumnos — ASG-${id_asignacion}`,
+      })
     } catch (error) {
-      console.error('Error al descargar el PDF', error)
-      setAlertMessage('Error al descargar el PDF. Verifica que el backend esté ejecutándose.')
+      setAlertMessage(error.message)
     }
   }
 
@@ -136,11 +134,12 @@ export default function ReporteListadoAlumnos() {
                     <td className="whitespace-nowrap px-4 py-3 text-right">
                       <button
                         data-twe-ripple-init
-                        onClick={() => handleDownload(row.id_asignacion)}
+                        onClick={() => handleVerPdf(row.id_asignacion)}
+                        disabled={cargando === row.id_asignacion}
                         className="rounded-lg bg-primary-50 px-3 py-1.5 text-xs font-bold text-primary transition-colors hover:bg-primary hover:text-white dark:bg-primary-100/10"
                         title="Descargar PDF"
                       >
-                        PDF Listado
+                        {cargando === row.id_asignacion ? 'Generando...' : 'Ver Listado'}
                       </button>
                     </td>
                   </tr>
@@ -150,6 +149,14 @@ export default function ReporteListadoAlumnos() {
           </table>
         </div>
       </div>
+
+      <PdfViewerModal
+        open={!!pdf}
+        onClose={cerrarPdf}
+        url={pdf?.url}
+        nombreArchivo={pdf?.nombreArchivo}
+        titulo={pdf?.titulo}
+      />
 
       <Modal
         open={!!alertMessage}

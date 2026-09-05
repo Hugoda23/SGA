@@ -2,12 +2,15 @@ import { useState, useEffect } from 'react'
 import api, { normList } from '../../api/axios'
 import { btn, input, table as tbl } from '../../lib/twClasses'
 import Modal from '../../components/Modal'
+import PdfViewerModal from '../../components/PdfViewerModal'
+import usePdfViewer from '../../hooks/usePdfViewer'
 
 export default function ReporteConstancias() {
   const [search, setSearch] = useState('')
   const [alumnos, setAlumnos] = useState([])
   const [loading, setLoading] = useState(true)
   const [alertMessage, setAlertMessage] = useState(null)
+  const { pdf, abrirPdf, cerrarPdf, cargando } = usePdfViewer()
 
   useEffect(() => {
     const fetchAlumnos = async () => {
@@ -23,19 +26,15 @@ export default function ReporteConstancias() {
     fetchAlumnos();
   }, []);
 
-  const handleDownloadConstancia = async (id_alumno) => {
+  const handleVerConstancia = async (row) => {
     try {
-      const response = await api.get(`/v1/reportes/pdf/constancia/${id_alumno}`, { responseType: 'blob' });
-      const url = window.URL.createObjectURL(new Blob([response.data]));
-      const link = document.createElement('a');
-      link.href = url;
-      link.setAttribute('download', `constancia_alumno_${id_alumno}.pdf`);
-      document.body.appendChild(link);
-      link.click();
-      link.remove();
+      await abrirPdf(`/v1/reportes/pdf/constancia/${row.id_alumno}`, {
+        clave: row.id_alumno,
+        nombreArchivo: `constancia_alumno_${row.id_alumno}.pdf`,
+        titulo: `Constancia — ${row.nombre} ${row.apellido}`,
+      })
     } catch (error) {
-      console.error('Error al descargar la constancia', error);
-      setAlertMessage('Error al descargar la constancia.');
+      setAlertMessage(error.message)
     }
   }
 
@@ -111,11 +110,12 @@ export default function ReporteConstancias() {
                     <td className={`${tbl.td} font-medium`}>{row.nombre} {row.apellido}</td>
                     <td className="whitespace-nowrap px-4 py-3 text-right">
                       <button 
-                        onClick={() => handleDownloadConstancia(row.id_alumno)}
-                        className="rounded-lg bg-success-50 px-3 py-1.5 text-xs font-bold text-success transition-colors hover:bg-success hover:text-white dark:bg-success-100/10"
-                        title="Generar Constancia"
+                        onClick={() => handleVerConstancia(row)}
+                        disabled={cargando === row.id_alumno}
+                        className="rounded-lg bg-success-50 px-3 py-1.5 text-xs font-bold text-success transition-colors hover:bg-success hover:text-white disabled:cursor-not-allowed disabled:opacity-60 dark:bg-success-100/10"
+                        title="Emitir Constancia"
                       >
-                        Emitir Constancia
+                        {cargando === row.id_alumno ? 'Generando...' : 'Emitir Constancia'}
                       </button>
                     </td>
                   </tr>
@@ -125,6 +125,14 @@ export default function ReporteConstancias() {
           </table>
         </div>
       </div>
+
+      <PdfViewerModal
+        open={!!pdf}
+        onClose={cerrarPdf}
+        url={pdf?.url}
+        nombreArchivo={pdf?.nombreArchivo}
+        titulo={pdf?.titulo}
+      />
 
       <Modal
         open={!!alertMessage}
