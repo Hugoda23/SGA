@@ -44,3 +44,10 @@ frontend/node_modules/
 # Respaldos de base de datos (datos reales de alumnos/usuarios — nunca a git)
 backups/
 *.sql
+
+# Listados oficiales de MINEDUC y los archivos derivados de ellos: traen
+# nombres, fechas de nacimiento y CUI de alumnos reales (menores de edad).
+# El repositorio está en GitHub — esto nunca debe subirse.
+*.pdf
+alumnos_import*.json
+passwords*.csv
