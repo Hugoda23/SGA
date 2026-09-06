@@ -8,6 +8,7 @@ use App\Models\Inscripcion;
 use App\Models\Asignacion;
 use App\Services\InscripcionService;
 use App\Services\NotificacionService;
+use App\Support\Busqueda;
 use Illuminate\Http\Request;
 
 class InscripcionController extends Controller
@@ -19,12 +20,7 @@ class InscripcionController extends Controller
 
         $query = Inscripcion::with('alumno', 'asignacion.curso', 'asignacion.seccion', 'asistencias', 'calificacionesFinales');
 
-        if ($q !== '') {
-            $query->where(function ($w) use ($q) {
-                $w->whereHas('alumno', fn ($a) => $a->where('nombre', 'ilike', "%{$q}%")->orWhere('apellido', 'ilike', "%{$q}%"))
-                    ->orWhereHas('asignacion.curso', fn ($c) => $c->where('nombre_curso', 'ilike', "%{$q}%"));
-            });
-        }
+        Busqueda::aplicar($query, $q, ['alumno.nombre', 'alumno.apellido', 'asignacion.curso.nombre_curso']);
 
         return $query->paginate($perPage);
     }
@@ -49,13 +45,7 @@ class InscripcionController extends Controller
                 'inscripciones' => fn ($i) => $i->where('estado', 'activo')->with('asignacion.curso'),
             ]);
 
-        if ($q !== '') {
-            $query->where(function ($w) use ($q) {
-                $w->where('nombre', 'ilike', "%{$q}%")
-                    ->orWhere('apellido', 'ilike', "%{$q}%")
-                    ->orWhere('codigo_mineduc', 'ilike', "%{$q}%");
-            });
-        }
+        Busqueda::aplicar($query, $q, ['nombre', 'apellido', 'codigo_mineduc']);
 
         $alumnos = $query->orderBy('apellido')->orderBy('nombre')->paginate($perPage);
 

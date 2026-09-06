@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Alumno;
 use App\Models\Rol;
 use App\Models\Usuario;
+use App\Support\Busqueda;
 use Illuminate\Database\QueryException;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -20,15 +21,7 @@ class AlumnoController extends Controller
 
         $query = Alumno::with('usuario', 'carrera', 'grado', 'inscripciones');
 
-        if ($q !== '') {
-            $query->where(function ($w) use ($q) {
-                $w->where('nombre', 'ilike', "%{$q}%")
-                    ->orWhere('apellido', 'ilike', "%{$q}%")
-                    ->orWhere('codigo_mineduc', 'ilike', "%{$q}%")
-                    ->orWhere('numero_documento', 'ilike', "%{$q}%")
-                    ->orWhere('correo', 'ilike', "%{$q}%");
-            });
-        }
+        Busqueda::aplicar($query, $q, ['nombre', 'apellido', 'codigo_mineduc', 'numero_documento', 'correo']);
 
         return $query->paginate($perPage);
     }

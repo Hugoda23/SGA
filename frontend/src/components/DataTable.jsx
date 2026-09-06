@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { btn, input, table as tbl } from '../lib/twClasses'
 import Modal from './Modal'
+import { coincide } from '../lib/buscar'
 
 export default function DataTable({ columns, data, onEdit, onDelete, title, onAdd, loading, subtitle, headerExtra, rowActions, pagination, onPageChange, onSearch, onExport }) {
   const [search, setSearch] = useState('')
@@ -75,9 +76,7 @@ export default function DataTable({ columns, data, onEdit, onDelete, title, onAd
   const total = pagination?.total ?? (isPaginated ? data.total : rows.length)
 
   const filtered = onSearch ? rows : rows.filter((row) =>
-    columns.some((col) =>
-      String(row[col.key] ?? '').toLowerCase().includes(search.toLowerCase())
-    )
+    coincide(search, ...columns.map((col) => row[col.key]))
   )
 
   const paginas = (() => {

@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import api from '../../api/axios'
 import { btn, input, table as tbl, badge } from '../../lib/twClasses'
 import Modal from '../../components/Modal'
+import { coincide } from '../../lib/buscar'
 
 export default function UserList() {
   const [data, setData] = useState([])
@@ -91,7 +92,7 @@ export default function UserList() {
   }
 
   const filteredData = data.filter(u => {
-    const matchesSearch = u.username.toLowerCase().includes(search.toLowerCase());
+    const matchesSearch = coincide(search, u.username);
     const rolPrincipal = u.roles?.[0]?.nombre || 'Sin Rol';
     const matchesRole = filterRole ? (rolPrincipal.toLowerCase() === filterRole.toLowerCase()) : true;
     const matchesStatus = filterStatus ? u.estado === filterStatus : true;

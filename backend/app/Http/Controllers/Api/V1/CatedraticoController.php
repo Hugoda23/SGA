@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Catedratico;
 use App\Models\Rol;
 use App\Models\Usuario;
+use App\Support\Busqueda;
 use App\Traits\PreventsDeleteOnRelatedRecords;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -21,14 +22,7 @@ class CatedraticoController extends Controller
 
         $query = Catedratico::with('usuario', 'asignaciones');
 
-        if ($q !== '') {
-            $query->where(function ($w) use ($q) {
-                $w->where('nombre', 'ilike', "%{$q}%")
-                    ->orWhere('apellido', 'ilike', "%{$q}%")
-                    ->orWhere('especialidad', 'ilike', "%{$q}%")
-                    ->orWhere('correo', 'ilike', "%{$q}%");
-            });
-        }
+        Busqueda::aplicar($query, $q, ['nombre', 'apellido', 'especialidad', 'correo']);
 
         return $query->paginate($perPage);
     }

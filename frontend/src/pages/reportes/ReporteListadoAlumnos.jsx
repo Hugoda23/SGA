@@ -5,6 +5,7 @@ import { btn, input, table as tbl, badge } from '../../lib/twClasses'
 import Modal from '../../components/Modal'
 import PdfViewerModal from '../../components/PdfViewerModal'
 import usePdfViewer from '../../hooks/usePdfViewer'
+import { coincide } from '../../lib/buscar'
 
 export default function ReporteListadoAlumnos() {
   const [searchParams] = useSearchParams()
@@ -40,19 +41,16 @@ export default function ReporteListadoAlumnos() {
     }
   }
 
-  const toText = (value) => (value ? String(value).toLowerCase() : '')
-
-  const filtered = asignaciones.filter((row) => {
-    const q = search.toLowerCase().trim()
-    if (!q) return true
-    const curso = toText(row.curso?.nombre_curso)
-    const grado = toText(row.grado?.nombre)
-    const seccion = toText(row.seccion?.nombre)
-    const periodo = toText(row.periodo?.nombre)
-    const catedratico = toText(`${row.catedratico?.nombre || ''} ${row.catedratico?.apellido || ''}`)
-    const codigo = toText(`ASG-${row.id_asignacion}`)
-    return [curso, grado, seccion, periodo, catedratico, codigo].some((v) => v.includes(q))
-  })
+  const filtered = asignaciones.filter((row) => coincide(
+    search,
+    row.curso?.nombre_curso,
+    row.grado?.nombre,
+    row.seccion?.nombre,
+    row.periodo?.nombre,
+    row.catedratico?.nombre,
+    row.catedratico?.apellido,
+    `ASG-${row.id_asignacion}`,
+  ))
 
   return (
     <div className="max-w-7xl mx-auto pb-12">

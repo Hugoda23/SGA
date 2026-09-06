@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import api from '../../api/axios'
 import { btn, input, table as tbl } from '../../lib/twClasses'
 import Modal from '../../components/Modal'
+import { coincide } from '../../lib/buscar'
 
 export default function EdificioList() {
   const [data, setData] = useState([])
@@ -68,7 +69,7 @@ export default function EdificioList() {
     });
   }
 
-  const filteredData = data.filter(e => e.nombre.toLowerCase().includes(search.toLowerCase()) || e.ubicacion?.toLowerCase().includes(search.toLowerCase()))
+  const filteredData = data.filter(e => coincide(search, e.nombre, e.ubicacion))
 
   return (
     <div className="mx-auto max-w-7xl pb-12">

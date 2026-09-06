@@ -8,6 +8,7 @@ use App\Models\Asignacion;
 use App\Models\ZonaEvaluacion;
 use App\Services\CalificacionService;
 use App\Services\NotificacionService;
+use App\Support\Busqueda;
 use Illuminate\Http\Request;
 
 class EvaluacionController extends Controller
@@ -19,12 +20,7 @@ class EvaluacionController extends Controller
 
         $query = Evaluacion::with('asignacion', 'detalleCalificaciones');
 
-        if ($q !== '') {
-            $query->where(function ($w) use ($q) {
-                $w->where('nombre', 'ilike', "%{$q}%")
-                    ->orWhereHas('asignacion.curso', fn ($c) => $c->where('nombre_curso', 'ilike', "%{$q}%"));
-            });
-        }
+        Busqueda::aplicar($query, $q, ['nombre', 'asignacion.curso.nombre_curso']);
 
         return $query->paginate($perPage);
     }

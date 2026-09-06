@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Asignacion;
 use App\Models\Pensum;
 use App\Services\HorarioService;
+use App\Support\Busqueda;
 use App\Traits\PreventsDeleteOnRelatedRecords;
 use Illuminate\Http\Request;
 
@@ -19,14 +20,13 @@ class AsignacionController extends Controller
 
         $query = Asignacion::with('catedratico', 'curso', 'aula', 'periodo', 'grado', 'seccion', 'horarios', 'inscripciones');
 
-        if ($q !== '') {
-            $query->where(function ($w) use ($q) {
-                $w->whereHas('curso', fn ($c) => $c->where('nombre_curso', 'ilike', "%{$q}%"))
-                    ->orWhereHas('catedratico', fn ($c) => $c->where('nombre', 'ilike', "%{$q}%")->orWhere('apellido', 'ilike', "%{$q}%"))
-                    ->orWhereHas('aula', fn ($c) => $c->where('nombre_aula', 'ilike', "%{$q}%"))
-                    ->orWhereHas('periodo', fn ($c) => $c->where('nombre', 'ilike', "%{$q}%"));
-            });
-        }
+        Busqueda::aplicar($query, $q, [
+            'curso.nombre_curso',
+            'catedratico.nombre',
+            'catedratico.apellido',
+            'aula.nombre_aula',
+            'periodo.nombre',
+        ]);
 
         return $query->paginate($perPage);
     }

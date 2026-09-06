@@ -4,6 +4,7 @@ import { btn, input, table as tbl } from '../../lib/twClasses'
 import Modal from '../../components/Modal'
 import PdfViewerModal from '../../components/PdfViewerModal'
 import usePdfViewer from '../../hooks/usePdfViewer'
+import { coincide } from '../../lib/buscar'
 
 export default function ReporteConstancias() {
   const [search, setSearch] = useState('')
@@ -38,11 +39,8 @@ export default function ReporteConstancias() {
     }
   }
 
-  const filteredAlumnos = alumnos.filter(a => 
-    (a.nombre && a.nombre.toLowerCase().includes(search.toLowerCase())) || 
-    (a.apellido && a.apellido.toLowerCase().includes(search.toLowerCase())) ||
-    (a.codigo_mineduc && a.codigo_mineduc.toLowerCase().includes(search.toLowerCase())) ||
-    (a.id_alumno && a.id_alumno.toString().includes(search))
+  const filteredAlumnos = alumnos.filter(a =>
+    coincide(search, a.nombre, a.apellido, a.codigo_mineduc, a.id_alumno)
   );
 
   return (

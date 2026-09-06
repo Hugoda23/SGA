@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import api from '../../api/axios'
 import { btn, input, table as tbl } from '../../lib/twClasses'
 import Modal from '../../components/Modal'
+import { coincide } from '../../lib/buscar'
 
 export default function SeccionList() {
   const [data, setData] = useState([])
@@ -65,9 +66,7 @@ export default function SeccionList() {
     })
   }
 
-  const filteredData = data.filter(e =>
-    e.nombre.toLowerCase().includes(search.toLowerCase())
-  )
+  const filteredData = data.filter(e => coincide(search, e.nombre))
 
   const LETTER_COLORS = ['bg-primary-50 text-primary', 'bg-success-50 text-success', 'bg-info-50 text-info', 'bg-warning-50 text-warning', 'bg-danger-50 text-danger', 'bg-neutral-100 text-neutral-600']
   const getColor = (nombre) => LETTER_COLORS[(nombre.charCodeAt(0) - 65) % LETTER_COLORS.length]

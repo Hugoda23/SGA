@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import api from '../../api/axios'
 import { btn, input, table as tbl, badge } from '../../lib/twClasses'
 import Modal from '../../components/Modal'
+import { coincide } from '../../lib/buscar'
 
 export default function GradoList() {
   const [data, setData] = useState([])
@@ -69,10 +70,7 @@ export default function GradoList() {
     })
   }
 
-  const filteredData = data.filter(e =>
-    e.nombre.toLowerCase().includes(search.toLowerCase()) ||
-    (e.nivel || '').toLowerCase().includes(search.toLowerCase())
-  )
+  const filteredData = data.filter(e => coincide(search, e.nombre, e.nivel))
 
   const NIVEL_COLORS = {
     'Preprimaria': badge.warning,

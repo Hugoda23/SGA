@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, useMemo } from 'react'
 import { input } from '../lib/twClasses'
+import { coincide } from '../lib/buscar'
 
 export default function SearchableSelect({ label, name, value, onChange, required, options = [], placeholder = 'Buscar...', emptyMessage = 'Sin resultados' }) {
   const [open, setOpen] = useState(false)
@@ -9,9 +10,8 @@ export default function SearchableSelect({ label, name, value, onChange, require
   const inputRef = useRef(null)
 
   const filtered = useMemo(() => {
-    const q = query.trim().toLowerCase()
-    if (!q) return options
-    return options.filter((opt) => opt.label.toLowerCase().includes(q))
+    if (!query.trim()) return options
+    return options.filter((opt) => coincide(query, opt.label))
   }, [options, query])
 
   const selected = options.find((opt) => String(opt.value) === String(value))

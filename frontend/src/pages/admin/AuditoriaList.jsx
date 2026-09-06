@@ -4,6 +4,7 @@ import { btn, input, table as tbl, badge } from '../../lib/twClasses'
 import Modal from '../../components/Modal'
 import PdfViewerModal from '../../components/PdfViewerModal'
 import usePdfViewer from '../../hooks/usePdfViewer'
+import { coincide } from '../../lib/buscar'
 
 export default function AuditoriaList() {
   const [logs, setLogs] = useState([])
@@ -52,11 +53,8 @@ export default function AuditoriaList() {
     }
   }
 
-  const filteredLogs = logs.filter(log => 
-    (log.accion && log.accion.toLowerCase().includes(search.toLowerCase())) ||
-    (log.tabla_afectada && log.tabla_afectada.toLowerCase().includes(search.toLowerCase())) ||
-    (log.descripcion && log.descripcion.toLowerCase().includes(search.toLowerCase())) ||
-    (log.usuario && log.usuario.username && log.usuario.username.toLowerCase().includes(search.toLowerCase()))
+  const filteredLogs = logs.filter(log =>
+    coincide(search, log.accion, log.tabla_afectada, log.descripcion, log.usuario?.username)
   )
 
   return (

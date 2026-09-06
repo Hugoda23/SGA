@@ -7,6 +7,7 @@ use App\Models\Tarea;
 use App\Models\Inscripcion;
 use App\Models\ZonaEvaluacion;
 use App\Services\NotificacionService;
+use App\Support\Busqueda;
 use App\Traits\VerificaPropietarioCurso;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
@@ -27,13 +28,7 @@ class TareaController extends Controller
             $query->whereHas('asignacion', fn ($a) => $a->where('id_catedratico', $catedratico->id_catedratico));
         }
 
-        if ($q !== '') {
-            $query->where(function ($w) use ($q) {
-                $w->where('titulo', 'ilike', "%{$q}%")
-                    ->orWhere('descripcion', 'ilike', "%{$q}%")
-                    ->orWhereHas('asignacion.curso', fn ($c) => $c->where('nombre_curso', 'ilike', "%{$q}%"));
-            });
-        }
+        Busqueda::aplicar($query, $q, ['titulo', 'descripcion', 'asignacion.curso.nombre_curso']);
 
         return $query->paginate($perPage);
     }

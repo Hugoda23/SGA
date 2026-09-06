@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import api from '../../api/axios'
 import { btn, input, badge } from '../../lib/twClasses'
 import Modal from '../../components/Modal'
+import { coincide } from '../../lib/buscar'
 
 function groupLabel(grado, carrera) {
   const gradoNombre = grado?.nombre?.trim()
@@ -55,7 +56,7 @@ export default function PensumList() {
       map.get(key).items.push(row)
     }
 
-    const q = search.trim().toLowerCase()
+    const q = search.trim()
     const sorted = [...map.values()].sort((a, b) => {
       const ca = a.carrera?.nombre_carrera || ''
       const cb = b.carrera?.nombre_carrera || ''
@@ -67,10 +68,9 @@ export default function PensumList() {
 
     return sorted
       .map((g) => {
-        const label = groupLabel(g.grado, g.carrera).toLowerCase()
-        const headerMatches = !q || label.includes(q)
+        const headerMatches = !q || coincide(q, groupLabel(g.grado, g.carrera))
         const cursos = g.items
-          .filter((item) => !q || headerMatches || String(item.curso?.nombre_curso ?? '').toLowerCase().includes(q))
+          .filter((item) => !q || headerMatches || coincide(q, item.curso?.nombre_curso))
           .sort((a, b) => String(a.curso?.nombre_curso || '').localeCompare(String(b.curso?.nombre_curso || '')))
         return { ...g, cursos }
       })

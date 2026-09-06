@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo } from 'react'
 import api from '../../api/axios'
 import { btn, input, table as tbl, badge } from '../../lib/twClasses'
 import Modal from '../../components/Modal'
+import { coincide } from '../../lib/buscar'
 
 const NIVELES = ['EMERGENCY', 'ALERT', 'CRITICAL', 'ERROR', 'WARNING', 'NOTICE', 'INFO', 'DEBUG']
 const POR_PAGINA = 50
@@ -58,11 +59,8 @@ export default function LogList() {
   }
 
   const filtered = useMemo(() => {
-    const q = search.toLowerCase().trim()
-    if (!q) return logs
-    return logs.filter((l) =>
-      [l.mensaje, l.excepcion, l.archivo, l.canal, l.fecha].join(' ').toLowerCase().includes(q)
-    )
+    if (!search.trim()) return logs
+    return logs.filter((l) => coincide(search, l.mensaje, l.excepcion, l.archivo, l.canal, l.fecha))
   }, [logs, search])
 
   const totalPaginas = Math.max(1, Math.ceil(filtered.length / POR_PAGINA))
