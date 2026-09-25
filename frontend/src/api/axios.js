@@ -1,7 +1,18 @@
 import axios from 'axios'
 
+// Se inyecta en tiempo de build (build-arg VITE_API_URL). Si el build corre sin
+// el .env, queda vacio y el SPA pega a rutas relativas que Nginx resuelve con el
+// propio index.html: las respuestas llegan como HTML con 200 y la sesion se
+// guarda corrupta. Mejor fallar fuerte y visible que arrastrar ese estado.
+const baseURL = import.meta.env.VITE_API_URL
+if (!baseURL) {
+  throw new Error(
+    'VITE_API_URL no esta definida. El frontend se compilo sin sus variables de entorno.'
+  )
+}
+
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_URL,
+  baseURL,
   headers: { 'Content-Type': 'application/json' },
 })
 
@@ -15,6 +26,14 @@ api.interceptors.request.use((config) => {
 
 api.interceptors.response.use(
   (response) => {
+    // Nginx sirve el index.html del SPA ante cualquier ruta que no matchee
+    // /api, con 200. Axios no lo considera un error y deja el HTML en
+    // response.data; sin este chequeo se propaga como si fuera un objeto.
+    if (typeof response.data === 'string' && response.data.startsWith('<')) {
+      return Promise.reject(
+        new Error(`La API devolvio HTML en lugar de JSON (${response.config?.url}).`)
+      )
+    }
     // El backend renueva el token a mitad de su vida útil (ver
     // RefreshSanctumToken) para que la sesión nunca expire mientras el
     // usuario esté activo; si viene uno nuevo, lo adoptamos en silencio.

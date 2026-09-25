@@ -19,6 +19,15 @@ ENV VITE_API_URL=${VITE_API_URL}
 ARG VITE_VAPID_PUBLIC_KEY
 ENV VITE_VAPID_PUBLIC_KEY=${VITE_VAPID_PUBLIC_KEY}
 
+# Vite hornea estas variables en el bundle: si el build corre sin --env-file,
+# el build-arg llega vacio y el SPA queda apuntando a rutas relativas que Nginx
+# resuelve con el index.html (respuestas HTML con 200, sesion corrupta). Se corta
+# aca, donde el error es evidente, y no en produccion.
+RUN test -n "$VITE_API_URL" || { \
+      echo "ERROR: VITE_API_URL vacio. Compila con --env-file .env.production" >&2; \
+      exit 1; \
+    }
+
 RUN npm run build
 
 # Etapa final: solo el contenido de dist/, para copiarlo con
