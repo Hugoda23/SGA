@@ -3,7 +3,7 @@ import { btn, input, table as tbl } from '../lib/twClasses'
 import Modal from './Modal'
 import { coincide } from '../lib/buscar'
 
-export default function DataTable({ columns, data, onEdit, onDelete, title, onAdd, loading, subtitle, headerExtra, rowActions, pagination, onPageChange, onSearch, onExport }) {
+export default function DataTable({ columns, data, onEdit, onDelete, title, onAdd, loading, subtitle, headerExtra, filters, rowActions, pagination, onPageChange, onSearch, onExport }) {
   const [search, setSearch] = useState('')
   const [confirmRow, setConfirmRow] = useState(null)
   const [deleteError, setDeleteError] = useState(null)
@@ -195,7 +195,7 @@ export default function DataTable({ columns, data, onEdit, onDelete, title, onAd
       </div>
 
       <div className="overflow-hidden rounded-xl bg-white shadow-4 dark:bg-surface-dark">
-        <div className="border-b-2 border-neutral-100 p-4 dark:border-neutral-600">
+        <div className="flex flex-col gap-3 border-b-2 border-neutral-100 p-4 dark:border-neutral-600 lg:flex-row lg:flex-wrap lg:items-center">
           <div className="relative w-full sm:w-80">
             <span className="absolute left-4 top-1/2 -translate-y-1/2 text-neutral-400">
               <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -210,6 +210,7 @@ export default function DataTable({ columns, data, onEdit, onDelete, title, onAd
               className={`${input.base} pl-12`}
             />
           </div>
+          {filters}
         </div>
 
         {/* Tabla: solo desde lg. Con muchas columnas, por debajo de ese ancho

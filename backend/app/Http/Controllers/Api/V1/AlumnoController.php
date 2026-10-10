@@ -4,7 +4,10 @@ namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
 use App\Models\Alumno;
+use App\Models\Carrera;
+use App\Models\Grado;
 use App\Models\Rol;
+use App\Models\Seccion;
 use App\Models\Usuario;
 use App\Support\Busqueda;
 use Illuminate\Database\QueryException;
@@ -19,7 +22,7 @@ class AlumnoController extends Controller
         $perPage = max(1, min((int) $request->query('per_page', 50), 1000));
         $q = trim((string) $request->query('q', ''));
 
-        $query = Alumno::with('usuario', 'carrera', 'grado', 'inscripciones');
+        $query = Alumno::with('usuario', 'carrera', 'grado', 'seccion', 'inscripciones');
 
         Busqueda::aplicar($query, $q, ['nombre', 'apellido', 'codigo_mineduc', 'numero_documento', 'correo']);
 
@@ -31,7 +34,42 @@ class AlumnoController extends Controller
             $query->whereNull('genero');
         }
 
+        if (in_array($request->query('estado_academico'), ['activo', 'inactivo', 'egresado', 'retirado'], true)) {
+            $query->where('estado_academico', $request->query('estado_academico'));
+        }
+
+        if (ctype_digit((string) $request->query('id_carrera'))) {
+            $query->where('id_carrera', (int) $request->query('id_carrera'));
+        }
+
+        if (ctype_digit((string) $request->query('id_seccion'))) {
+            $query->where('id_seccion_actual', (int) $request->query('id_seccion'));
+        }
+
+        // 'sin_grado': borrar un grado deja a sus alumnos con id_grado_actual
+        // en NULL (ON DELETE SET NULL), y hay que poder encontrarlos.
+        $grado = (string) $request->query('id_grado');
+        if (ctype_digit($grado)) {
+            $query->where('id_grado_actual', (int) $grado);
+        } elseif ($grado === 'sin_grado') {
+            $query->whereNull('id_grado_actual');
+        }
+
         return $query->paginate($perPage);
+    }
+
+    /**
+     * Opciones de los filtros del listado. Va aparte de /carreras, /grados y
+     * /secciones porque esas rutas piden sus propios permisos, y quien solo
+     * tiene 'alumnos' se quedaría con los selectores vacíos.
+     */
+    public function filtros()
+    {
+        return [
+            'carreras' => Carrera::orderBy('nombre_carrera')->get(['id_carrera', 'nombre_carrera']),
+            'grados' => Grado::orderBy('nivel')->orderBy('nombre')->get(['id_grado', 'nombre']),
+            'secciones' => Seccion::orderBy('nombre')->get(['id_seccion', 'nombre']),
+        ];
     }
 
     public function store(Request $request)

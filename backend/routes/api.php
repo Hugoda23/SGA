@@ -172,6 +172,7 @@ Route::prefix('v1')->group(function () {
         Route::get('logs', [SistemaLogController::class, 'index'])->middleware('permiso:logs');
         Route::delete('logs', [SistemaLogController::class, 'destroy'])->middleware('permiso:logs');
         Route::apiResource('reportes-generados',     ReporteGeneradoController::class)->parameters(['reportes-generados' => 'reporte_generado'])->middleware('permiso:reportes');
+        Route::get('alumnos/filtros',             [AlumnoController::class, 'filtros'])->middleware('permiso:alumnos');
         Route::apiResource('alumnos',                AlumnoController::class)->middleware('permiso:alumnos');
         Route::apiResource('catedraticos',           CatedraticoController::class)->middleware('permiso:catedraticos');
         Route::apiResource('cursos',                 CursoController::class)->middleware('permiso:cursos');
