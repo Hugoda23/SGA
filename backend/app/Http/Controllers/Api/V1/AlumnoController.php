@@ -23,6 +23,14 @@ class AlumnoController extends Controller
 
         Busqueda::aplicar($query, $q, ['nombre', 'apellido', 'codigo_mineduc', 'numero_documento', 'correo']);
 
+        // 'sin_registrar' trae a los alumnos previos a la columna genero.
+        $genero = $request->query('genero');
+        if (in_array($genero, ['masculino', 'femenino'], true)) {
+            $query->where('genero', $genero);
+        } elseif ($genero === 'sin_registrar') {
+            $query->whereNull('genero');
+        }
+
         return $query->paginate($perPage);
     }
 

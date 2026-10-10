@@ -2,19 +2,21 @@ import { useState, useEffect, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
 import api, { normList } from '../../api/axios'
 import DataTable from '../../components/DataTable'
+import { input } from '../../lib/twClasses'
 
 export default function AlumnoList() {
   const [data, setData] = useState([])
   const [loading, setLoading] = useState(true)
   const [page, setPage] = useState(1)
   const [q, setQ] = useState('')
+  const [genero, setGenero] = useState('')
   const [pagination, setPagination] = useState(null)
   const navigate = useNavigate()
 
   const fetchData = useCallback(async () => {
     setLoading(true)
     try {
-      const res = await api.get('/v1/alumnos', { params: { page, q: q || undefined } })
+      const res = await api.get('/v1/alumnos', { params: { page, q: q || undefined, genero: genero || undefined } })
       setData(res.data)
       setPagination({ current_page: res.data.current_page, last_page: res.data.last_page, total: res.data.total })
     } catch (err) {
@@ -22,7 +24,7 @@ export default function AlumnoList() {
     } finally {
       setLoading(false)
     }
-  }, [page, q])
+  }, [page, q, genero])
 
   useEffect(() => { fetchData() }, [fetchData])
 
@@ -70,7 +72,7 @@ export default function AlumnoList() {
   ]
 
   const handleExport = async () => {
-    const r = await api.get('/v1/alumnos', { params: { per_page: 1000, q: q || undefined } })
+    const r = await api.get('/v1/alumnos', { params: { per_page: 1000, q: q || undefined, genero: genero || undefined } })
     return normList(r.data)
   }
 
@@ -87,6 +89,19 @@ export default function AlumnoList() {
       onPageChange={setPage}
       onSearch={(s) => { setQ(s); setPage(1) }}
       onExport={handleExport}
+      headerExtra={
+        <select
+          value={genero}
+          onChange={(e) => { setGenero(e.target.value); setPage(1) }}
+          aria-label="Filtrar por género"
+          className={`${input.base} w-auto flex-1 sm:flex-none`}
+        >
+          <option value="">Todos los géneros</option>
+          <option value="masculino">Masculino</option>
+          <option value="femenino">Femenino</option>
+          <option value="sin_registrar">Sin registrar</option>
+        </select>
+      }
     />
   )
 }
